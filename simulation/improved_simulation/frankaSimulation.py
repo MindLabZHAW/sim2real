@@ -29,17 +29,11 @@ from isaacgym.torch_utils import *
 import math
 import numpy as np
 import torch
-import time
 import pickle as pkl
 from assets.assetFactory import AssetFactory
+from simulation.SimulationData import SimulationData
+from simulation.simulation import Simulation
 from simulation.simulationCreator import SimulationCreator
-
-from utils import utils
-
-dataPath = os.getcwd()+'/DATA/data.pickle'
-computer_name = '/home/' + os.getcwd().split('/')[2] + '/'
-duration_time = 15
-
 
 # set random seed
 np.random.seed(42)
@@ -216,7 +210,7 @@ _massmatrix = gym.acquire_mass_matrix_tensor(sim, "franka")
 mm = gymtorch.wrap_tensor(_massmatrix)
 mm = mm[:, :7, :7]          # only need elements corresponding to the franka arm
 
-# get rigid body state tensor
+# get rigid body state tensor__pycache__/**/*
 _rb_states = gym.acquire_rigid_body_state_tensor(sim)
 rb_states = gymtorch.wrap_tensor(_rb_states)
 
@@ -243,114 +237,19 @@ for sublist in panda_idxs:
     for item in sublist:
         flat_list.append(item)
 panda_idxs = flat_list
-# simulation loop
-start_time = time.time()
 
-data_dict = []
-#df_master = pd.DataFrame(())
-index_number = 0
-while time.time()-start_time < duration_time: #not gym.query_viewer_has_closed(viewer):
-    #time.sleep(0.1)
-    # step the physics
-    gym.simulate(sim)
-    gym.fetch_results(sim, True)
 
-    # refresh tensors
-    gym.refresh_rigid_body_state_tensor(sim)
-    gym.refresh_dof_state_tensor(sim)
-    gym.refresh_jacobian_tensors(sim)
-    gym.refresh_mass_matrix_tensors(sim)
-    gym.refresh_net_contact_force_tensor(sim)
+simulation_data = SimulationData(net_cf, panda_idxs, rb_states, box_idxs, hand_idxs, down_dir, controller, dof_pos, corners, num_envs, init_pos, init_rot, down_q, pos_action,
+                                  effort_action, hand_restart, j_eef, damping, mm, kp, kp_null, kd, kd_null, dof_vel, default_dof_pos_tensor)
 
-    #contact detection
-    #print(net_cf)
-    #print(panda_idxs)
-    #print(net_cf[panda_idxs])
-    contacted_link = utils.count_nonzero(net_cf[panda_idxs])
-    if torch.count_nonzero(contacted_link) == 0:
-        print('There is no Contact :)')
-    else:
-        print('There is a Contact :(')
-        #print(contacted_link)
-        print(net_cf[panda_idxs])
-    #control
-    
-    box_pos = rb_states[box_idxs, :3]
-    box_rot = rb_states[box_idxs, 3:7]
+simulation = Simulation(gym, sim, viewer, device, simulation_data)
+simulation.run(15)
 
-    hand_pos = rb_states[hand_idxs, :3]
-    hand_rot = rb_states[hand_idxs, 3:7]
-    hand_vel = rb_states[hand_idxs, 7:]
-
-    to_box = box_pos - hand_pos
-    box_dist = torch.norm(to_box, dim=-1).unsqueeze(-1)
-    box_dir = to_box / box_dist
-    box_dot = box_dir @ down_dir.view(3, 1)
-
-    # how far the hand should be from box for grasping
-    grasp_offset = 0.11 if controller == "ik" else 0.10
-
-    # determine if we're holding the box (grippers are closed and box is near)
-    gripper_sep = dof_pos[:, 7] + dof_pos[:, 8]
-    gripped = (gripper_sep < 0.045) & (box_dist < grasp_offset + 0.5 * AssetFactory.BOX_SIZE) #true or false
-
-    yaw_q = utils.cube_grasping_yaw(box_rot, corners)
-    box_yaw_dir = utils.quat_axis(yaw_q, 0)
-    hand_yaw_dir = utils.quat_axis(hand_rot, 0)
-    yaw_dot = torch.bmm(box_yaw_dir.view(num_envs, 1, 3), hand_yaw_dir.view(num_envs, 3, 1)).squeeze(-1)
-
-    # determine if we have reached the initial position; if so allow the hand to start moving to the box
-    to_init = init_pos - hand_pos
-    init_dist = torch.norm(to_init, dim=-1)
-    hand_restart = (hand_restart & (init_dist > 0.02)).squeeze(-1)
-    return_to_start = (hand_restart | gripped.squeeze(-1)).unsqueeze(-1)
-
-    # if hand is above box, descend to grasp offset
-    # otherwise, seek a position above the box
-    above_box = ((box_dot >= 0.99) & (yaw_dot >= 0.95) & (box_dist < grasp_offset * 3)).squeeze(-1)
-    grasp_pos = box_pos.clone()
-    grasp_pos[:, 2] = torch.where(above_box, box_pos[:, 2] + grasp_offset, box_pos[:, 2] + grasp_offset * 2.5)
-
-    # compute goal position and orientation
-    goal_pos = torch.where(return_to_start, init_pos, grasp_pos)
-    goal_rot = torch.where(return_to_start, init_rot, quat_mul(down_q, quat_conjugate(yaw_q)))
-
-    # compute position and orientation error
-    pos_err = goal_pos - hand_pos
-    orn_err = utils.orientation_error(goal_rot, hand_rot)
-    dpose = torch.cat([pos_err, orn_err], -1).unsqueeze(-1)
-
-    # Deploy control based on type
-    if controller == "ik":
-        pos_action[:, :7] = dof_pos.squeeze(-1)[:, :7] + utils.control_ik(dpose, j_eef, device, damping, num_envs)
-    else:       # osc
-        effort_action[:, :7] = utils.control_osc(dpose, dpose, mm, j_eef, kp, kp_null, kd, kd_null, hand_vel, dof_vel, default_dof_pos_tensor, dof_pos, device)
-
-    # gripper actions depend on distance between hand and box
-    close_gripper = (box_dist < grasp_offset + 0.02) | gripped
-    # always open the gripper above a certain height, dropping the box and restarting from the beginning
-    hand_restart = hand_restart | (box_pos[:, 2] > 0.6)
-    keep_going = torch.logical_not(hand_restart)
-    close_gripper = close_gripper & keep_going.unsqueeze(-1)
-    grip_acts = torch.where(close_gripper, torch.Tensor([[0., 0.]] * num_envs).to(device), torch.Tensor([[0.04, 0.04]] * num_envs).to(device))
-    pos_action[:, 7:9] = grip_acts
-
-    # Deploy actions
-    gym.set_dof_position_target_tensor(sim, gymtorch.unwrap_tensor(pos_action))
-    gym.set_dof_actuation_force_tensor(sim, gymtorch.unwrap_tensor(effort_action))
-
-    # update viewer
-    gym.step_graphics(sim)
-    gym.draw_viewer(viewer, sim, False)
-    gym.sync_frame_time(sim)
-    if index_number == 0:
-        data_dict = { 'time':  [time.time()-start_time], 'contact' : net_cf[panda_idxs][None,:,:]}
-    data_dict['time'] = np.append(data_dict['time'],[time.time()-start_time])
-    data_dict['contact'] = torch.cat((data_dict['contact'] , net_cf[panda_idxs][None,:,:]))
-    index_number = index_number + 1
+# save data
+dataPath = os.getcwd()+'/DATA/data.pickle'
+pkl.dump(simulation.get_data_dict(), open(dataPath, 'wb'))
 
 # cleanup
-pkl.dump(data_dict, open(dataPath, 'wb'))
 gym.destroy_viewer(viewer)
 gym.destroy_sim(sim)
 
