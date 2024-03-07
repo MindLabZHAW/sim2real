@@ -32,6 +32,7 @@ import torch
 import time
 import pickle as pkl
 from assets.assetFactory import AssetFactory
+from simulation.simulationCreator import SimulationCreator
 
 from utils import utils
 
@@ -165,101 +166,17 @@ env_lower = gymapi.Vec3(-spacing, -spacing, 0.0)
 env_upper = gymapi.Vec3(spacing, spacing, spacing)
 print("Creating %d environments" % num_envs)
 
-franka_pose = gymapi.Transform()
-franka_pose.p = gymapi.Vec3(0, 0, 0)
+simulation_creator = SimulationCreator(gym, table_asset, box_asset, barrier_asset, franka_asset)
+simulation_creator.create_simulation(num_envs, AssetFactory.TABLE_DIMS, sim, env_lower,
+                                   env_upper, num_per_row, franka_dof_props,
+                                   default_dof_state, default_dof_pos)
 
-table_pose = gymapi.Transform()
-table_pose.p = gymapi.Vec3(0.5, 0.0, 0.5 * AssetFactory.TABLE_DIMS.z)
-
-box_pose = gymapi.Transform()
-barrier_pose = gymapi.Transform()
-
-envs = []
-box_idxs = []
-hand_idxs = []
-panda_idxs = []
-init_pos_list = []
-init_rot_list = []
-
-# add ground plane
-plane_params = gymapi.PlaneParams()
-plane_params.normal = gymapi.Vec3(0, 0, 1)
-gym.add_ground(sim, plane_params)
-
-for i in range(num_envs):
-    # create env
-    env = gym.create_env(sim, env_lower, env_upper, num_per_row)
-    envs.append(env)
-
-    # add table
-    table_handle = gym.create_actor(env, table_asset, table_pose, "table", i, 0)
-
-    # add box
-    box_pose.p.x = table_pose.p.x + np.random.uniform(-0.2, 0.1)
-    box_pose.p.y = table_pose.p.y + np.random.uniform(-0.3, 0.3)
-    box_pose.p.z = AssetFactory.TABLE_DIMS.z + 0.5 * AssetFactory.BOX_SIZE
-    box_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1), np.random.uniform(-math.pi, math.pi))
-    box_handle = gym.create_actor(env, box_asset, box_pose, "box", i, 1)
-    color = gymapi.Vec3(np.random.uniform(0, 1), np.random.uniform(0, 1), np.random.uniform(0, 1))
-    gym.set_rigid_body_color(env, box_handle, 0, gymapi.MESH_VISUAL_AND_COLLISION, color)
-
-    # get global index of box in rigid body state tensor
-    box_idx = gym.get_actor_rigid_body_index(env, box_handle, 0, gymapi.DOMAIN_SIM)
-    box_idxs.append(box_idx)
-    
-    #add barriers 
-    #1
-    barrier_pose.p.x = box_pose.p.x + 0.1#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.y = box_pose.p.y - 0.1#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.z = table_pose.p.z + 0.5 * AssetFactory.BARRIER_DIMS.z
-
-    #barrier_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1),np.random.uniform(-math.pi, math.pi))
-    barrier_handle = gym.create_actor(env, barrier_asset, barrier_pose, "barrier0", i, 4)
-    color = gymapi.Vec3(1, 0, 0)
-    gym.set_rigid_body_color(env, barrier_handle, 4, gymapi.MESH_VISUAL_AND_COLLISION, color)
-
-    #2
-    barrier_pose.p.x = box_pose.p.x - 0.1#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.y = box_pose.p.y + 0.1#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.z = table_pose.p.z + 0.5 * AssetFactory.BARRIER_DIMS.z
-
-    #barrier_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1),np.random.uniform(-math.pi, math.pi))
-    barrier_handle_1 = gym.create_actor(env, barrier_asset, barrier_pose, "barrier1", i, 6)
-    color = gymapi.Vec3(0, 1, np.random.uniform(0, 1))
-    gym.set_rigid_body_color(env, barrier_handle_1, 6, gymapi.MESH_VISUAL_AND_COLLISION, color)
-    
-    #3
-    barrier_pose.p.x = box_pose.p.x - 0.2#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.y = box_pose.p.y + 0.2#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.z = table_pose.p.z + 0.5 * AssetFactory.BARRIER_DIMS.z
-
-    #barrier_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1),np.random.uniform(-math.pi, math.pi))
-    barrier_handle_1 = gym.create_actor(env, barrier_asset, barrier_pose, "barrier1", i, 8)
-    color = gymapi.Vec3(0, 1, np.random.uniform(0, 1))
-    gym.set_rigid_body_color(env, barrier_handle_1, 8, gymapi.MESH_VISUAL_AND_COLLISION, color)
-    # add franka
-    franka_handle = gym.create_actor(env, franka_asset, franka_pose, "franka", i, 2)
-
-    # set dof properties
-    gym.set_actor_dof_properties(env, franka_handle, franka_dof_props)
-
-    # set initial dof states
-    gym.set_actor_dof_states(env, franka_handle, default_dof_state, gymapi.STATE_ALL)
-
-    # set initial position targets
-    gym.set_actor_dof_position_targets(env, franka_handle, default_dof_pos)
-
-    # get inital hand pose
-    hand_handle = gym.find_actor_rigid_body_handle(env, franka_handle, "panda_hand")
-    hand_pose = gym.get_rigid_transform(env, hand_handle)
-    init_pos_list.append([hand_pose.p.x, hand_pose.p.y, hand_pose.p.z])
-    init_rot_list.append([hand_pose.r.x, hand_pose.r.y, hand_pose.r.z, hand_pose.r.w])
-
-    # get global index of hand in rigid body state tensor
-    hand_idx = gym.find_actor_rigid_body_index(env, franka_handle, "panda_hand", gymapi.DOMAIN_SIM)
-    hand_idxs.append(hand_idx)
-    panda_idxs.append(range(hand_idx-8,hand_idx+1)) #+3
-
+envs = simulation_creator.get_envs()
+box_idxs = simulation_creator.get_box_idxs()
+hand_idxs = simulation_creator.get_hand_idxs()
+panda_idxs = simulation_creator.get_panda_idxs()
+init_pos_list = simulation_creator.get_init_pos_list()
+init_rot_list = simulation_creator.get_init_rot_list()
 
 # point camera at middle env
 cam_pos = gymapi.Vec3(4, 3, 2)
