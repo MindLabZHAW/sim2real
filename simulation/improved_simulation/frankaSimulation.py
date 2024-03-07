@@ -31,7 +31,7 @@ import numpy as np
 import torch
 import time
 import pickle as pkl
-import pandas as pd
+from assets.assetFactory import AssetFactory
 
 from utils import utils
 
@@ -109,39 +109,12 @@ viewer = gym.create_viewer(sim, gymapi.CameraProperties())
 if viewer is None:
     raise Exception("Failed to create viewer")
 
-asset_root = computer_name + "/isaacgym/assets"
+asset_creator = AssetFactory(gym, sim)
 
-# create table asset
-table_dims = gymapi.Vec3(0.6, 1.0, 0.4)
-asset_options = gymapi.AssetOptions()
-asset_options.fix_base_link = True
-table_asset = gym.create_box(sim, table_dims.x, table_dims.y, table_dims.z, asset_options)
-
-# create box asset
-box_size = 0.045
-asset_options = gymapi.AssetOptions()
-box_asset = gym.create_box(sim, box_size, box_size, box_size, asset_options)
-
-# create barrier asset
-barrier_dims = gymapi.Vec3(0.05, 0.05, 1)
-asset_options = gymapi.AssetOptions()
-asset_options.fix_base_link = True
-barrier_asset = gym.create_box(sim, barrier_dims.x, barrier_dims.y, barrier_dims.z, asset_options)
-
-
-# load franka asset
-franka_asset_file = "urdf/franka_description/robots/franka_panda.urdf"
-asset_options = gymapi.AssetOptions()
-asset_options.armature = 0.01
-asset_options.fix_base_link = True
-asset_options.collapse_fixed_joints = False
-asset_options.disable_gravity = True
-asset_options.thickness = 0.001
-asset_options.flip_visual_attachments = True
-asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
-asset_options.use_mesh_materials = True
-franka_asset = gym.load_asset(sim, asset_root, franka_asset_file, asset_options)
-
+table_asset = asset_creator.create_table_asset()
+box_asset = asset_creator.create_box_asset()
+barrier_asset = asset_creator.create_barrier_asset()
+franka_asset = asset_creator.create_franka_asset()
 
 # configure franka dofs
 franka_dof_props = gym.get_asset_dof_properties(franka_asset)
@@ -196,7 +169,7 @@ franka_pose = gymapi.Transform()
 franka_pose.p = gymapi.Vec3(0, 0, 0)
 
 table_pose = gymapi.Transform()
-table_pose.p = gymapi.Vec3(0.5, 0.0, 0.5 * table_dims.z)
+table_pose.p = gymapi.Vec3(0.5, 0.0, 0.5 * AssetFactory.TABLE_DIMS.z)
 
 box_pose = gymapi.Transform()
 barrier_pose = gymapi.Transform()
@@ -224,7 +197,7 @@ for i in range(num_envs):
     # add box
     box_pose.p.x = table_pose.p.x + np.random.uniform(-0.2, 0.1)
     box_pose.p.y = table_pose.p.y + np.random.uniform(-0.3, 0.3)
-    box_pose.p.z = table_dims.z + 0.5 * box_size
+    box_pose.p.z = AssetFactory.TABLE_DIMS.z + 0.5 * AssetFactory.BOX_SIZE
     box_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1), np.random.uniform(-math.pi, math.pi))
     box_handle = gym.create_actor(env, box_asset, box_pose, "box", i, 1)
     color = gymapi.Vec3(np.random.uniform(0, 1), np.random.uniform(0, 1), np.random.uniform(0, 1))
@@ -238,7 +211,7 @@ for i in range(num_envs):
     #1
     barrier_pose.p.x = box_pose.p.x + 0.1#np.random.uniform(-0.1, 0.1)
     barrier_pose.p.y = box_pose.p.y - 0.1#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.z = table_pose.p.z + 0.5 * barrier_dims.z
+    barrier_pose.p.z = table_pose.p.z + 0.5 * AssetFactory.BARRIER_DIMS.z
 
     #barrier_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1),np.random.uniform(-math.pi, math.pi))
     barrier_handle = gym.create_actor(env, barrier_asset, barrier_pose, "barrier0", i, 4)
@@ -248,7 +221,7 @@ for i in range(num_envs):
     #2
     barrier_pose.p.x = box_pose.p.x - 0.1#np.random.uniform(-0.1, 0.1)
     barrier_pose.p.y = box_pose.p.y + 0.1#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.z = table_pose.p.z + 0.5 * barrier_dims.z
+    barrier_pose.p.z = table_pose.p.z + 0.5 * AssetFactory.BARRIER_DIMS.z
 
     #barrier_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1),np.random.uniform(-math.pi, math.pi))
     barrier_handle_1 = gym.create_actor(env, barrier_asset, barrier_pose, "barrier1", i, 6)
@@ -258,7 +231,7 @@ for i in range(num_envs):
     #3
     barrier_pose.p.x = box_pose.p.x - 0.2#np.random.uniform(-0.1, 0.1)
     barrier_pose.p.y = box_pose.p.y + 0.2#np.random.uniform(-0.1, 0.1)
-    barrier_pose.p.z = table_pose.p.z + 0.5 * barrier_dims.z
+    barrier_pose.p.z = table_pose.p.z + 0.5 * AssetFactory.BARRIER_DIMS.z
 
     #barrier_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1),np.random.uniform(-math.pi, math.pi))
     barrier_handle_1 = gym.create_actor(env, barrier_asset, barrier_pose, "barrier1", i, 8)
@@ -306,7 +279,7 @@ init_rot = torch.Tensor(init_rot_list).view(num_envs, 4).to(device)
 down_q = torch.stack(num_envs * [torch.tensor([1.0, 0.0, 0.0, 0.0])]).to(device).view((num_envs, 4))
 
 # box corner coords, used to determine grasping yaw
-box_half_size = 0.5 * box_size
+box_half_size = 0.5 * AssetFactory.BOX_SIZE
 corner_coord = torch.Tensor([box_half_size, box_half_size, box_half_size])
 corners = torch.stack(num_envs * [corner_coord]).to(device)
 
@@ -402,7 +375,7 @@ while time.time()-start_time < duration_time: #not gym.query_viewer_has_closed(v
 
     # determine if we're holding the box (grippers are closed and box is near)
     gripper_sep = dof_pos[:, 7] + dof_pos[:, 8]
-    gripped = (gripper_sep < 0.045) & (box_dist < grasp_offset + 0.5 * box_size) #true or false
+    gripped = (gripper_sep < 0.045) & (box_dist < grasp_offset + 0.5 * AssetFactory.BOX_SIZE) #true or false
 
     yaw_q = utils.cube_grasping_yaw(box_rot, corners)
     box_yaw_dir = utils.quat_axis(yaw_q, 0)
