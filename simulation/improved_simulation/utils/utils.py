@@ -4,6 +4,7 @@ from isaacgym.torch_utils import *
 import math
 import numpy as np
 import torch
+from isaacgym import gymapi
 
 def count_nonzero(input):
     nonzeros = torch.zeros(input.shape[0])
@@ -65,3 +66,11 @@ def control_osc(dpose, mm, j_eef, kp, kp_null, kd, kd_null, hand_vel, dof_vel, d
     u_null = mm @ u_null
     u += (torch.eye(7, device=device).unsqueeze(0) - torch.transpose(j_eef, 1, 2) @ j_eef_inv) @ u_null
     return u.squeeze(-1)
+
+
+def point_camera_at_middle_env(gym, viewer, num_envs, envs, num_per_row):
+    # point camera at middle env
+    cam_pos = gymapi.Vec3(4, 3, 2)
+    cam_target = gymapi.Vec3(-4, -3, 0)
+    middle_env = envs[num_envs // 2 + num_per_row // 2]
+    gym.viewer_camera_look_at(viewer, middle_env, cam_pos, cam_target)

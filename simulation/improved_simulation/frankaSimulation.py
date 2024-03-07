@@ -30,6 +30,7 @@ import math
 import numpy as np
 import torch
 import pickle as pkl
+from utils import utils
 from assets.assetFactory import AssetFactory
 from simulation.SimulationData import SimulationData
 from simulation.simulation import Simulation
@@ -172,11 +173,7 @@ panda_idxs = simulation_creator.get_panda_idxs()
 init_pos_list = simulation_creator.get_init_pos_list()
 init_rot_list = simulation_creator.get_init_rot_list()
 
-# point camera at middle env
-cam_pos = gymapi.Vec3(4, 3, 2)
-cam_target = gymapi.Vec3(-4, -3, 0)
-middle_env = envs[num_envs // 2 + num_per_row // 2]
-gym.viewer_camera_look_at(viewer, middle_env, cam_pos, cam_target)
+utils.point_camera_at_middle_env(gym, viewer, num_envs, envs, num_per_row)
 
 # ==== prepare tensors =====
 # from now on, we will use the tensor API that can run on CPU or GPU
