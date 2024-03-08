@@ -35,13 +35,11 @@ from assets.assetFactory import AssetFactory
 from simulation.SimulationData import SimulationData
 from simulation.simulation import Simulation
 from simulation.simulationCreator import SimulationCreator
+from config.config import Configuration
+from simulation.DofDataProcessor import DofDataProcessor
 
 # set random seed
 np.random.seed(42)
-
-torch.set_printoptions(precision=4, sci_mode=False)
-
-# acquire gym interface
 gym = gymapi.acquire_gym()
 
 # parse arguments
@@ -66,34 +64,7 @@ assert controller in {"ik", "osc"}, f"Invalid controller specified -- options ar
 device = args.sim_device if args.use_gpu_pipeline else 'cpu'
 
 # configure sim
-sim_params = gymapi.SimParams()
-sim_params.up_axis = gymapi.UP_AXIS_Z
-sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.81)
-sim_params.dt = 1.0 / 60.0
-sim_params.substeps = 1
-sim_params.use_gpu_pipeline = args.use_gpu_pipeline
-if args.physics_engine == gymapi.SIM_PHYSX:
-    sim_params.physx.solver_type = 1
-    sim_params.physx.num_position_iterations = 4
-    sim_params.physx.num_velocity_iterations = 1
-    sim_params.physx.rest_offset = 0.0
-    sim_params.physx.contact_offset = 0.001
-    sim_params.physx.friction_offset_threshold = 0.001
-    sim_params.physx.friction_correlation_distance = 0.0005
-    sim_params.physx.num_threads = args.num_threads
-    sim_params.physx.use_gpu = args.use_gpu
-else:
-    raise Exception("This example can only be used with PhysX")
-
-# Set controller parameters
-# IK params
-damping = 0.05
-
-# OSC params
-kp = 150.
-kd = 2.0 * np.sqrt(kp)
-kp_null = 10.
-kd_null = 2.0 * np.sqrt(kp_null)
+sim_params = Configuration.configure_sim_params(args)
 
 # create sim
 sim = gym.create_sim(args.compute_device_id, args.graphics_device_id, args.physics_engine, sim_params)
@@ -106,43 +77,13 @@ if viewer is None:
     raise Exception("Failed to create viewer")
 
 asset_creator = AssetFactory(gym, sim)
-
-table_asset = asset_creator.create_table_asset()
-box_asset = asset_creator.create_box_asset()
-barrier_asset = asset_creator.create_barrier_asset()
 franka_asset = asset_creator.create_franka_asset()
 
 # configure franka dofs
-franka_dof_props = gym.get_asset_dof_properties(franka_asset)
-franka_lower_limits = franka_dof_props["lower"]
-franka_upper_limits = franka_dof_props["upper"]
-franka_ranges = franka_upper_limits - franka_lower_limits
-franka_mids = 0.3 * (franka_upper_limits + franka_lower_limits)
+dof_data_processor = DofDataProcessor(gym, franka_asset)
+dof_data_processor.process_dof_data(controller)
 
-# use position drive for all dofs
-if controller == "ik":
-    franka_dof_props["driveMode"][:7].fill(gymapi.DOF_MODE_POS)
-    franka_dof_props["stiffness"][:7].fill(400.0)
-    franka_dof_props["damping"][:7].fill(40.0)
-else:       # osc
-    franka_dof_props["driveMode"][:7].fill(gymapi.DOF_MODE_EFFORT)
-    franka_dof_props["stiffness"][:7].fill(0.0)
-    franka_dof_props["damping"][:7].fill(0.0)
-# grippers
-franka_dof_props["driveMode"][7:].fill(gymapi.DOF_MODE_POS)
-franka_dof_props["stiffness"][7:].fill(800.0)
-franka_dof_props["damping"][7:].fill(40.0)
-
-# default dof states and position targets
-franka_num_dofs = gym.get_asset_dof_count(franka_asset)
-default_dof_pos = np.zeros(franka_num_dofs, dtype=np.float32)
-default_dof_pos[:7] = franka_mids[:7]
-
-# grippers open
-default_dof_pos[7:] = franka_upper_limits[7:]
-
-default_dof_state = np.zeros(franka_num_dofs, gymapi.DofState.dtype)
-default_dof_state["pos"] = default_dof_pos
+default_dof_pos = dof_data_processor.get_default_dof_pos()
 
 # send to torch
 default_dof_pos_tensor = to_torch(default_dof_pos, device=device)
@@ -161,10 +102,11 @@ env_lower = gymapi.Vec3(-spacing, -spacing, 0.0)
 env_upper = gymapi.Vec3(spacing, spacing, spacing)
 print("Creating %d environments" % num_envs)
 
-simulation_creator = SimulationCreator(gym, table_asset, box_asset, barrier_asset, franka_asset)
+
+simulation_creator = SimulationCreator(gym, asset_creator.create_table_asset(), asset_creator.create_box_asset(), asset_creator.create_barrier_asset(), franka_asset)
 simulation_creator.create_simulation(num_envs, AssetFactory.TABLE_DIMS, sim, env_lower,
-                                   env_upper, num_per_row, franka_dof_props,
-                                   default_dof_state, default_dof_pos)
+                                   env_upper, num_per_row, dof_data_processor.get_franka_dof_props(),
+                                   dof_data_processor.get_default_dof_state(), default_dof_pos)
 
 envs = simulation_creator.get_envs()
 box_idxs = simulation_creator.get_box_idxs()
@@ -237,7 +179,8 @@ panda_idxs = flat_list
 
 
 simulation_data = SimulationData(net_cf, panda_idxs, rb_states, box_idxs, hand_idxs, down_dir, controller, dof_pos, corners, num_envs, init_pos, init_rot, down_q, pos_action,
-                                  effort_action, hand_restart, j_eef, damping, mm, kp, kp_null, kd, kd_null, dof_vel, default_dof_pos_tensor)
+                                  effort_action, hand_restart, j_eef, Configuration.DAMPING, mm, Configuration.KP, Configuration.KP_NULL, Configuration.KD, Configuration.KD_NULL, 
+                                  dof_vel, default_dof_pos_tensor)
 
 simulation = Simulation(gym, sim, viewer, device, simulation_data)
 simulation.run(15)
