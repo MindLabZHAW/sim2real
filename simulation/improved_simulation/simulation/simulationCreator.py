@@ -3,6 +3,7 @@ import numpy as np
 import math
 
 from assets.assetFactory import AssetFactory
+from config.config import Configuration
 
 class SimulationCreator:
     def __init__(self, gym, table_asset, box_asset, barrier_asset, franka_asset):
@@ -19,7 +20,7 @@ class SimulationCreator:
         self.panda_idxs = []
 
 
-    def create_simulation(self, number_of_envs, table_dims, sim, env_lower, env_upper, num_per_row, franka_dof_props,
+    def create_simulation(self, number_of_envs, table_dims, sim, num_per_row, franka_dof_props,
                          default_dof_state, default_dof_pos):
         
         franka_pose = gymapi.Transform()
@@ -39,7 +40,7 @@ class SimulationCreator:
 
         for i in range(number_of_envs):
             # create env
-            env = self.gym.create_env(sim, env_lower, env_upper, num_per_row)
+            env = self.gym.create_env(sim, Configuration.ENV_LOWER, Configuration.ENV_UPPER, num_per_row)
             self.envs.append(env)
 
             # add table

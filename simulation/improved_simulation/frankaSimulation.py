@@ -30,6 +30,7 @@ import math
 import numpy as np
 import torch
 import pickle as pkl
+from simulation.IndexDataProcessor import IndexDataProcessor
 from utils import utils
 from assets.assetFactory import AssetFactory
 from simulation.SimulationData import SimulationData
@@ -83,30 +84,15 @@ franka_asset = asset_creator.create_franka_asset()
 dof_data_processor = DofDataProcessor(gym, franka_asset)
 dof_data_processor.process_dof_data(controller)
 
-default_dof_pos = dof_data_processor.get_default_dof_pos()
-
-# send to torch
-default_dof_pos_tensor = to_torch(default_dof_pos, device=device)
-
-# get link index of panda hand, which we will use as end effector
-franka_link_dict = gym.get_asset_rigid_body_dict(franka_asset)
-num_franka_shapes = gym.get_asset_rigid_shape_count(franka_asset)
-print(franka_link_dict)
-franka_hand_index = franka_link_dict["panda_hand"]
-
 # configure env grid
 num_envs = args.num_envs
 num_per_row = int(math.sqrt(num_envs))
-spacing = 1.0
-env_lower = gymapi.Vec3(-spacing, -spacing, 0.0)
-env_upper = gymapi.Vec3(spacing, spacing, spacing)
 print("Creating %d environments" % num_envs)
 
 
 simulation_creator = SimulationCreator(gym, asset_creator.create_table_asset(), asset_creator.create_box_asset(), asset_creator.create_barrier_asset(), franka_asset)
-simulation_creator.create_simulation(num_envs, AssetFactory.TABLE_DIMS, sim, env_lower,
-                                   env_upper, num_per_row, dof_data_processor.get_franka_dof_props(),
-                                   dof_data_processor.get_default_dof_state(), default_dof_pos)
+simulation_creator.create_simulation(num_envs, AssetFactory.TABLE_DIMS, sim, num_per_row, dof_data_processor.get_franka_dof_props(),
+                                   dof_data_processor.get_default_dof_state(), dof_data_processor.get_default_dof_pos())
 
 envs = simulation_creator.get_envs()
 box_idxs = simulation_creator.get_box_idxs()
@@ -142,6 +128,11 @@ _jacobian = gym.acquire_jacobian_tensor(sim, "franka")
 jacobian = gymtorch.wrap_tensor(_jacobian)
 
 # jacobian entries corresponding to franka hand
+# get link index of panda hand, which we will use as end effector
+franka_link_dict = gym.get_asset_rigid_body_dict(franka_asset)
+num_franka_shapes = gym.get_asset_rigid_shape_count(franka_asset)
+print(franka_link_dict)
+franka_hand_index = franka_link_dict["panda_hand"]
 j_eef = jacobian[:, franka_hand_index - 1, :, :7]
 
 # get mass matrix tensor
@@ -177,6 +168,8 @@ for sublist in panda_idxs:
         flat_list.append(item)
 panda_idxs = flat_list
 
+# send to torch
+default_dof_pos_tensor = to_torch(default_dof_pos, device=device)
 
 simulation_data = SimulationData(net_cf, panda_idxs, rb_states, box_idxs, hand_idxs, down_dir, controller, dof_pos, corners, num_envs, init_pos, init_rot, down_q, pos_action,
                                   effort_action, hand_restart, j_eef, Configuration.DAMPING, mm, Configuration.KP, Configuration.KP_NULL, Configuration.KD, Configuration.KD_NULL, 

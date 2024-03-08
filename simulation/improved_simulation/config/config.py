@@ -13,6 +13,10 @@ class Configuration:
     KP_NULL = 10.
     KD_NULL = 2.0 * np.sqrt(KP_NULL)
 
+    SPACING = 1.0
+    ENV_LOWER = gymapi.Vec3(-SPACING, -SPACING, 0.0)
+    ENV_UPPER = gymapi.Vec3(SPACING, SPACING, SPACING)
+
     @staticmethod
     def configure_sim_params(args):
         sim_params = gymapi.SimParams()
