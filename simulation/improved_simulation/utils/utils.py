@@ -74,3 +74,19 @@ def point_camera_at_middle_env(gym, viewer, num_envs, envs, num_per_row):
     cam_target = gymapi.Vec3(-4, -3, 0)
     middle_env = envs[num_envs // 2 + num_per_row // 2]
     gym.viewer_camera_look_at(viewer, middle_env, cam_pos, cam_target)
+
+def get_flat_list(panda_idxs):
+    flat_list = []
+    for sublist in panda_idxs:
+        for item in sublist:
+            flat_list.append(item)
+    return flat_list
+
+def get_jacabian_end_effector(gym, franka_asset, jacobian_tensor):
+    # jacobian entries corresponding to franka hand
+    # get link index of panda hand, which we will use as end effector
+    franka_link_dict = gym.get_asset_rigid_body_dict(franka_asset)
+    print(franka_link_dict)
+    franka_hand_index = franka_link_dict["panda_hand"]
+    return jacobian_tensor[:, franka_hand_index - 1, :, :7]
+

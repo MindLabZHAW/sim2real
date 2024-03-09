@@ -1,5 +1,6 @@
 import time
 from assets.assetFactory import AssetFactory
+from simulation.improved_simulation.config.config import Configuration
 from utils import utils
 import torch
 from isaacgym import gymtorch
@@ -97,9 +98,9 @@ class Simulation:
 
         # Deploy control based on type
         if self.sim_data.controller == "ik":
-            self.sim_data.pos_action[:, :7] = self.sim_data.dof_pos.squeeze(-1)[:, :7] + utils.control_ik(dpose, self.sim_data.j_eef, self.device, self.sim_data.damping, self.sim_data.num_envs)
+            self.sim_data.pos_action[:, :7] = self.sim_data.dof_pos.squeeze(-1)[:, :7] + utils.control_ik(dpose, self.sim_data.j_eef, self.device, Configuration.DAMPING, self.sim_data.num_envs)
         else:       # osc
-            self.sim_data.effort_action[:, :7] = utils.control_osc(dpose, self.sim_data.mm, self.sim_data.j_eef, self.sim_data.kp, self.sim_data.kp_null, self.sim_data.kd, self.sim_data.kd_null,
+            self.sim_data.effort_action[:, :7] = utils.control_osc(dpose, self.sim_data.mm, self.sim_data.j_eef, Configuration.KP, Configuration.KP_NULL, Configuration.KD, Configuration.KD_NULL,
                                                                     hand_vel, self.sim_data.dof_vel, self.sim_data.default_dof_pos_tensor, self.sim_data.dof_pos, self.device)
 
         # gripper actions depend on distance between hand and box
