@@ -29,8 +29,10 @@ class PlayGround:
             print("Shape for:",key, self.data[key].shape)
             print("[0] for ",key, self.data[key][0])
             
-playground = PlayGround('./data.pickle') 
-cf_data = playground.print_data_info()
+playground_cf = PlayGround('./data.pickle') 
+cf_data = playground_cf.print_data_info()
 
+#playground_rb = PlayGround('./rb_state_data.pickle')
+#rb_data = playground_rb.print_data_info()
 
 
