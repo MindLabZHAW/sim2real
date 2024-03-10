@@ -35,4 +35,7 @@ cf_data = playground_cf.print_data_info()
 #playground_rb = PlayGround('./rb_state_data.pickle')
 #rb_data = playground_rb.print_data_info()
 
+#playground_dof = PlayGround('./dof_state_data.pickle')
+#dof_data = playground_dof.print_data_info()
+
 
