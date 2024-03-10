@@ -33,6 +33,7 @@ class DataProcessor:
         self.cf_data_dict['contact'] = torch.cat((self.cf_data_dict['contact'] , self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]))
         
     def process_rb_state_data(self):
+        #TODO: Find out why in cf data there is [None,:,:]
         #process the rb_state data here
         rb_state = self.sim_data.rb_states
         if self.index_number == 0:

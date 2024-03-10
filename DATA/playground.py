@@ -9,16 +9,28 @@ class CustomUnpickler(pickle.Unpickler):
         else: 
             return super().find_class(module, name)
 
-# Open the pickle file and load the data
-with open('./data.pickle', 'rb') as f:
-    unpickler = CustomUnpickler(f)
-    data = unpickler.load()
+class PlayGround:
+    def __init__(self, path):
+        self.file_path = path
+        self.data = self.open_pickle_file()
+        
+    def open_pickle_file(self):
+        with open(self.file_path, 'rb') as f:
+            unpickler = CustomUnpickler(f)
+            data = unpickler.load()
+            return data
+    
+    def print_data_info(self):
+        self.data = self.open_pickle_file()
+        print(self.data.keys())
+        keys = self.data.keys()
+        for key in keys:
+            print("Data for:",key, self.data[key])
+            print("Shape for:",key, self.data[key].shape)
+            print("[0] for ",key, self.data[key][0])
+            
+playground = PlayGround('./data.pickle') 
+cf_data = playground.print_data_info()
 
-# Now you can analyze the data
-print(data.keys())
-print("time data:", data['time'])
-print("time data shape:", data['time'].shape)
-print("time[0]:",data['time'][0])
-print("contact data:",data['contact'])
-print("contact data shape:", data['contact'].shape)
-print("contact[]:",data['contact'][0])
+
+
