@@ -2,7 +2,7 @@ import torch
 from isaacgym import gymtorch
 from isaacgym.torch_utils import *
 
-from simulation.improved_simulation.assets.assetFactory import AssetFactory
+from assets.assetFactory import AssetFactory
 
 class TensorDataProcessor:
     def __init__(self, gym, sim, num_envs, init_pos_list, init_rot_list, default_dof_pos, panda_idxs):

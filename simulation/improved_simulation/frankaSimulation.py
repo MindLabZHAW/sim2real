@@ -29,14 +29,14 @@ import math
 import numpy as np
 import torch
 import pickle as pkl
-from simulation.improved_simulation.simulation.TensorDataProcessor import TensorDataProcessor
-from simulation.improved_simulation.utils import utils
-from simulation.improved_simulation.assets.assetFactory import AssetFactory
-from simulation.improved_simulation.simulation.SimulationData import SimulationData
-from simulation.improved_simulation.simulation.simulation import Simulation
-from simulation.improved_simulation.simulation.simulationCreator import SimulationCreator
-from simulation.improved_simulation.config.config import Configuration
-from simulation.improved_simulation.simulation.DofDataProcessor import DofDataProcessor
+from simulation.TensorDataProcessor import TensorDataProcessor
+from utils import utils
+from assets.assetFactory import AssetFactory
+from simulation.SimulationData import SimulationData
+from simulation.simulation import Simulation
+from simulation.simulationCreator import SimulationCreator
+from config.config import Configuration
+from simulation.DofDataProcessor import DofDataProcessor
 
 # set random seed
 np.random.seed(42)

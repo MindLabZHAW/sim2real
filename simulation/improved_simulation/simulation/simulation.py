@@ -1,7 +1,7 @@
 import time
-from simulation.improved_simulation.assets.assetFactory import AssetFactory
-from simulation.improved_simulation.config.config import Configuration
-from simulation.improved_simulation.utils import utils
+from assets.assetFactory import AssetFactory
+from config.config import Configuration
+from utils import utils
 import torch
 from isaacgym import gymtorch
 from isaacgym.torch_utils import *
