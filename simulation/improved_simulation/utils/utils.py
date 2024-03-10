@@ -1,0 +1,92 @@
+
+from isaacgym.torch_utils import *
+
+import math
+import numpy as np
+import torch
+from isaacgym import gymapi
+
+def count_nonzero(input):
+    nonzeros = torch.zeros(input.shape[0])
+    threshold = 0.0001
+    for i in range(input.shape[0]):
+        for j in range(input.shape[1]):
+            if input[i,j] > threshold:
+                nonzeros[i] = 1
+
+    return nonzeros
+
+def quat_axis(q, axis=0):
+    basis_vec = torch.zeros(q.shape[0], 3, device=q.device)
+    basis_vec[:, axis] = 1
+    return quat_rotate(q, basis_vec)
+
+
+def orientation_error(desired, current):
+    cc = quat_conjugate(current)
+    q_r = quat_mul(desired, cc)
+    return q_r[:, 0:3] * torch.sign(q_r[:, 3]).unsqueeze(-1)
+
+
+def cube_grasping_yaw(q, corners):
+    """ returns horizontal rotation required to grasp cube """
+    rc = quat_rotate(q, corners)
+    yaw = (torch.atan2(rc[:, 1], rc[:, 0]) - 0.25 * math.pi) % (0.5 * math.pi)
+    theta = 0.5 * yaw
+    w = theta.cos()
+    x = torch.zeros_like(w)
+    y = torch.zeros_like(w)
+    z = theta.sin()
+    yaw_quats = torch.stack([x, y, z, w], dim=-1)
+    return yaw_quats
+
+
+def control_ik(dpose, j_eef, device, damping, num_envs):
+    # solve damped least squares
+    j_eef_T = torch.transpose(j_eef, 1, 2)
+    lmbda = torch.eye(6, device=device) * (damping ** 2)
+    u = (j_eef_T @ torch.inverse(j_eef @ j_eef_T + lmbda) @ dpose).view(num_envs, 7)
+    return u
+
+
+def control_osc(dpose, mm, j_eef, kp, kp_null, kd, kd_null, hand_vel, dof_vel, default_dof_pos_tensor, dof_pos, device):
+    mm_inv = torch.inverse(mm)
+    m_eef_inv = j_eef @ mm_inv @ torch.transpose(j_eef, 1, 2)
+    m_eef = torch.inverse(m_eef_inv)
+    u = torch.transpose(j_eef, 1, 2) @ m_eef @ (
+        kp * dpose - kd * hand_vel.unsqueeze(-1))
+
+    # Nullspace control torques `u_null` prevents large changes in joint configuration
+    # They are added into the nullspace of OSC so that the end effector orientation remains constant
+    # roboticsproceedings.org/rss07/p31.pdf
+    j_eef_inv = m_eef @ j_eef @ mm_inv
+    u_null = kd_null * -dof_vel + kp_null * (
+        (default_dof_pos_tensor.view(1, -1, 1) - dof_pos + np.pi) % (2 * np.pi) - np.pi)
+    u_null = u_null[:, :7]
+    u_null = mm @ u_null
+    u += (torch.eye(7, device=device).unsqueeze(0) - torch.transpose(j_eef, 1, 2) @ j_eef_inv) @ u_null
+    return u.squeeze(-1)
+
+
+def point_camera_at_middle_env(gym, viewer, num_envs, envs, num_per_row):
+    # point camera at middle env
+    cam_pos = gymapi.Vec3(4, 3, 2)
+    cam_target = gymapi.Vec3(-4, -3, 0)
+    middle_env = envs[num_envs // 2 + num_per_row // 2]
+    gym.viewer_camera_look_at(viewer, middle_env, cam_pos, cam_target)
+
+def get_flat_list(panda_idxs):
+    flat_list = []
+    for sublist in panda_idxs:
+        for item in sublist:
+            flat_list.append(item)
+    return flat_list
+
+def get_jacabian_end_effector(gym, franka_asset, jacobian_tensor):
+    # jacobian entries corresponding to franka hand
+    # get link index of panda hand, which we will use as end effector
+    franka_link_dict = gym.get_asset_rigid_body_dict(franka_asset)
+    print(franka_link_dict)
+    franka_hand_index = franka_link_dict["panda_hand"]
+    return jacobian_tensor[:, franka_hand_index - 1, :, :7]
+
