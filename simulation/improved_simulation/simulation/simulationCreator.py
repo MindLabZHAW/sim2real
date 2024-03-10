@@ -2,8 +2,8 @@ from isaacgym import gymapi
 import numpy as np
 import math
 
-from assets.assetFactory import AssetFactory
-from config.config import Configuration
+from simulation.improved_simulation.assets.assetFactory import AssetFactory
+from simulation.improved_simulation.config.config import Configuration
 
 class SimulationCreator:
     def __init__(self, gym, table_asset, box_asset, barrier_asset, franka_asset):

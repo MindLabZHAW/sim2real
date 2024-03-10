@@ -1,7 +1,7 @@
 import time
-from assets.assetFactory import AssetFactory
+from simulation.improved_simulation.assets.assetFactory import AssetFactory
 from simulation.improved_simulation.config.config import Configuration
-from utils import utils
+from simulation.improved_simulation.utils import utils
 import torch
 from isaacgym import gymtorch
 from isaacgym.torch_utils import *
@@ -126,6 +126,6 @@ class Simulation:
         self.data_dict['contact'] = torch.cat((self.data_dict['contact'] , self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]))
         
     def get_data_dict(self):
-        return self.get_data_dict.copy()
+        return self.data_dict.copy()
             
             

@@ -30,13 +30,13 @@ import numpy as np
 import torch
 import pickle as pkl
 from simulation.improved_simulation.simulation.TensorDataProcessor import TensorDataProcessor
-from utils import utils
-from assets.assetFactory import AssetFactory
-from simulation.SimulationData import SimulationData
-from simulation.simulation import Simulation
-from simulation.simulationCreator import SimulationCreator
-from config.config import Configuration
-from simulation.DofDataProcessor import DofDataProcessor
+from simulation.improved_simulation.utils import utils
+from simulation.improved_simulation.assets.assetFactory import AssetFactory
+from simulation.improved_simulation.simulation.SimulationData import SimulationData
+from simulation.improved_simulation.simulation.simulation import Simulation
+from simulation.improved_simulation.simulation.simulationCreator import SimulationCreator
+from simulation.improved_simulation.config.config import Configuration
+from simulation.improved_simulation.simulation.DofDataProcessor import DofDataProcessor
 
 # set random seed
 np.random.seed(42)
@@ -103,16 +103,16 @@ panda_idxs = simulation_creator.get_panda_idxs()
 
 # ==== prepare tensors =====
 # from now on, we will use the tensor API that can run on CPU or GPU
-tensor_data_processor = TensorDataProcessor(num_envs, simulation_creator.get_init_pos_list(), simulation_creator.get_init_rot_list(), panda_idxs)
+tensor_data_processor = TensorDataProcessor(gym, sim, num_envs, simulation_creator.get_init_pos_list(), simulation_creator.get_init_rot_list(), default_dof_pos, panda_idxs)
 tensor_data_processor.process_tensor_data(device)
 
-simulation_data = SimulationData(tensor_data_processor.get_net_contact_force_tensor(), utils.get_flat_list(panda_idxs), tensor_data_processor.get_rigib_body_states_tensor(), 
-                                 simulation_creator.get_box_idxs(), simulation_creator.get_hand_idxs(), tensor_data_processor.get_down_dir_tensor(), controller, 
-                                 tensor_data_processor.get_dof_pos_tensor(), tensor_data_processor.get_box_corners_tensor(), num_envs, tensor_data_processor.get_init_pos_tensor(), 
+simulation_data = SimulationData(tensor_data_processor.get_net_contact_force_tensor(), utils.get_flat_list(panda_idxs), tensor_data_processor.get_rigib_body_states_tensor(),
+                                 simulation_creator.get_box_idxs(), simulation_creator.get_hand_idxs(), tensor_data_processor.get_down_dir_tensor(), controller,
+                                 tensor_data_processor.get_dof_pos_tensor(), tensor_data_processor.get_box_corners_tensor(), num_envs, tensor_data_processor.get_init_pos_tensor(),
                                  tensor_data_processor.get_init_rot_tensor(), tensor_data_processor.get_down_q_tensor(), tensor_data_processor.get_pos_action_tensor(),
-                                  tensor_data_processor.get_effort_action_tensor(), tensor_data_processor.get_hand_restart_tensor(), 
-                                  utils.get_jacabian_end_effector(gym, franka_asset, tensor_data_processor.get_jacobian_tensor()), 
-                                  tensor_data_processor.get_mass_matrix_tensor(), tensor_data_processor.get_dof_vel_tensor(), 
+                                  tensor_data_processor.get_effort_action_tensor(), tensor_data_processor.get_hand_restart_tensor(),
+                                  utils.get_jacabian_end_effector(gym, franka_asset, tensor_data_processor.get_jacobian_tensor()),
+                                  tensor_data_processor.get_mass_matrix_tensor(), tensor_data_processor.get_dof_vel_tensor(),
                                   tensor_data_processor.get_default_pos_tensor())
 
 simulation = Simulation(gym, sim, viewer, device, simulation_data)
