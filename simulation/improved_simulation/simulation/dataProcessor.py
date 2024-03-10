@@ -46,6 +46,7 @@ class DataProcessor:
         self.rb_state_data_dict['rb_state_position'] = torch.cat((self.rb_state_data_dict['rb_state_position'], rb_state[self.sim_data.panda_idxs][0:3]))
         self.rb_state_data_dict['rb_state_rotation'] = torch.cat((self.rb_state_data_dict['rb_state_rotation'], rb_state[self.sim_data.panda_idxs][3:7]))
         self.rb_state_data_dict['rb_state_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_velocity'], rb_state[self.sim_data.panda_idxs][7:]))
+        #Linear velocity is [7:10] and angular velocity is [10:13]
         pass
     
     def process_dof_state_data(self):
