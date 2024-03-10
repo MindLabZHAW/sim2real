@@ -23,7 +23,7 @@ class DataProcessor:
     def save_data(self):
         #save the data into the respective pickle files
         self.save_contact_force_data()
-        #TODO: save the rigid body state data
+        #self.save_rb_state_data()
         pass
     
     def process_contact_force_data(self):
