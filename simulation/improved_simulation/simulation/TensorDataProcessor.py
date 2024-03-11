@@ -28,7 +28,6 @@ class TensorDataProcessor:
         self.dof_vel = None
         self.pos_action = None
         self.effort_action = None
-        self.default_dof_pos_tensor = None
         self.contacted_link = None
 
     def process_tensor_data(self, device):
@@ -39,8 +38,8 @@ class TensorDataProcessor:
         self.init_mass_matrix_tensor()
         self.init_rigid_body_state_tensor()
         self.init_net_contact_force_tensor()
-        self.init_hand_restart_tensor()
-        self.init_box_corners_tensor()
+        self.init_hand_restart_tensor(device)
+        self.init_box_corners_tensor(device)
         self.init_dof_pos_tensor()
         self.init_dof_vel_tensor()
         self.init_pos_action_tensor()
@@ -54,7 +53,7 @@ class TensorDataProcessor:
 
     def init_default_dof_pos_tensor(self, device):
         # send to torch
-        self.default_dof_pos_tensor = to_torch(self.default_dof_pos, device=device)
+        self.default_dof_pos_tensor = to_torch(self.default_dof_pos_tensor, device=device)
 
     def init_effort_action_tensor(self):
         # Set action tensors
