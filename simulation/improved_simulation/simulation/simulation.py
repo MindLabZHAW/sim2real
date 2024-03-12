@@ -1,6 +1,7 @@
 import time
 from assets.assetFactory import AssetFactory
 from config.config import Configuration
+from simulation.dataProcessor import DataProcessor
 from utils import utils
 import torch
 from isaacgym import gymtorch
@@ -19,9 +20,13 @@ class Simulation:
         # simulation loop
         start_time = time.time()
 
+        dataProcessor = DataProcessor(self.sim_data, start_time)
+
         index_number = 0
         while time.time() - start_time < duration_time:  # not gym.query_viewer_has_closed(viewer):
             self.tick(start_time, index_number)
+            dataProcessor.process()
+            dataProcessor.save_data()
             index_number += 1
 
 
@@ -73,7 +78,6 @@ class Simulation:
 
         self.deploy_actions()
         self.update_viewer()
-        self.save_data_to_dict(index_number, start_time)
 
     def get_distance_from_hand_position_to_initial_position(self):
         return torch.norm(self.get_vector_from_hand_position_to_initial_position(), dim=-1)

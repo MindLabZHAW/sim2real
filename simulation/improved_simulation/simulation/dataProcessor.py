@@ -6,12 +6,13 @@ import time
 import pickle as pkl
 
 class DataProcessor:
-    def __init__(self, data, start_time, index_number):
-        self.data = data
+    def __init__(self, data, start_time):
+        self.sim_data = data
         self.start_time = start_time
-        self.index_number = index_number
         self.cf_data_dict = []
         self.rb_state_data_dict = []
+        self.index_number = 0
+
 
     def process(self):
         #Process the data here
@@ -31,8 +32,10 @@ class DataProcessor:
     def process_contact_force_data(self):
         if self.index_number == 0:
             self.cf_data_dict = { 'time':  [time.time()-self.start_time], 'contact' : self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]}
+            print("TEST111")
         self.cf_data_dict['time'] = np.append(self.cf_data_dict['time'],[time.time()-self.start_time])
         self.cf_data_dict['contact'] = torch.cat((self.cf_data_dict['contact'] , self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]))
+        print("TEST2222")
         
     def process_rb_state_data(self):
         #TODO: Find out why in cf data there is [None,:,:]
@@ -61,19 +64,19 @@ class DataProcessor:
     
     def save_contact_force_data(self):
         #save the contact force data into a pickle file
-        dataPath = os.getcwd()+'/DATA/contact_force_data.pickle'
+        dataPath = os.getcwd()+'/simulation/DATA/contact_force_data.pickle'
         pkl.dump(self.cf_data_dict, open(dataPath, 'wb'))
         pass
         
     def save_rb_state_data(self):
         #save the rb_state data into a pickle file
-        dataPath = os.getcwd()+'/DATA/rb_state_data.pickle'
+        dataPath = os.getcwd()+'/simulation/DATA/rb_state_data.pickle'
         pkl.dump(self.rb_state_data_dict, open(dataPath, 'wb'))
         pass
     
     def save_dof_state_data(self):
         #save the dof_state data into a pickle file
-        dataPath = os.getcwd()+'/DATA/dof_state_data.pickle'
+        dataPath = os.getcwd()+'/simulation/DATA/dof_state_data.pickle'
         pkl.dump(self.dof_state_data_dict, open(dataPath, 'wb'))
         pass
     
