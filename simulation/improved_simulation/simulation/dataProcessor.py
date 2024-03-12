@@ -32,10 +32,8 @@ class DataProcessor:
     def process_contact_force_data(self):
         if self.index_number == 0:
             self.cf_data_dict = { 'time':  [time.time()-self.start_time], 'contact' : self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]}
-            print("TEST111")
         self.cf_data_dict['time'] = np.append(self.cf_data_dict['time'],[time.time()-self.start_time])
         self.cf_data_dict['contact'] = torch.cat((self.cf_data_dict['contact'] , self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]))
-        print("TEST2222")
         
     def process_rb_state_data(self):
         #TODO: Find out why in cf data there is [None,:,:]
