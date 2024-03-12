@@ -12,7 +12,15 @@ class DataProcessor:
         self.cf_data_dict = []
         self.rb_state_data_dict = []
         self.index_number = 0
-
+    
+    def cleanup(self):
+        if os.path.exists(os.getcwd()+'/simulation/DATA/contact_force_data.pickle'):
+            os.remove(os.getcwd()+'/simulation/DATA/contact_force_data.pickle')
+            print("File deleted")
+        if os.path.exists(os.getcwd()+'/simulation/DATA/rb_state_data.pickle'):
+            os.remove(os.getcwd()+'/simulation/DATA/rb_state_data.pickle')
+        if os.path.exists(os.getcwd()+'/simulation/DATA/dof_state_data.pickle'):
+            os.remove(os.getcwd()+'/simulation/DATA/dof_state_data.pickle')
 
     def process(self):
         #Process the data here

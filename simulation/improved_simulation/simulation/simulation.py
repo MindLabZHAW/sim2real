@@ -21,6 +21,7 @@ class Simulation:
         start_time = time.time()
 
         dataProcessor = DataProcessor(self.sim_data, start_time)
+        dataProcessor.cleanup()
 
         index_number = 0
         while time.time() - start_time < duration_time:  # not gym.query_viewer_has_closed(viewer):
