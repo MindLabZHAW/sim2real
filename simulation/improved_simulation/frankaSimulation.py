@@ -118,9 +118,6 @@ simulation_data = SimulationData(tensor_data_processor.get_net_contact_force_ten
 simulation = Simulation(gym, sim, viewer, device, simulation_data)
 simulation.run(15)
 
-# save data
-dataPath = os.getcwd()+'/DATA/data.pickle'
-pkl.dump(simulation.get_data_dict(), open(dataPath, 'wb'))
 
 # cleanup
 gym.destroy_viewer(viewer)

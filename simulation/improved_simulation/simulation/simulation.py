@@ -27,9 +27,9 @@ class Simulation:
         while time.time() - start_time < duration_time:  # not gym.query_viewer_has_closed(viewer):
             self.tick(start_time, index_number)
             dataProcessor.process()
-            dataProcessor.save_data()
             index_number += 1
-
+            
+        dataProcessor.save_data()
 
     def tick(self, start_time, index_number):
         #time.sleep(0.1)
