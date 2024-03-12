@@ -100,7 +100,7 @@ class DataProcessor:
     def save_root_state_data(self):
         #save the rb_state data into a pickle file
         dataPath = os.getcwd()+'/simulation/DATA/root_state_data.pickle'
-        pkl.dump(self.rb_state_data_dict, open(dataPath, 'wb'))
+        pkl.dump(self.root_state_data_dict, open(dataPath, 'wb'))
         pass
     
     def save_dof_state_data(self):
