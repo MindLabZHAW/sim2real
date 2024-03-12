@@ -29,6 +29,7 @@ class TensorDataProcessor:
         self.pos_action = None
         self.effort_action = None
         self.contacted_link = None
+        self.root_states = None
 
     def process_tensor_data(self, device):
         self.init_pos_and_rot_tensor(device)
@@ -94,6 +95,11 @@ class TensorDataProcessor:
         # get rigid body state tensor__pycache__/**/*
         _rb_states = self.gym.acquire_rigid_body_state_tensor(self.sim)
         self.rb_states = gymtorch.wrap_tensor(_rb_states)
+        
+    def init_actor_root_state_tensor(self):
+        # get rigid body state tensor__pycache__/**/*
+        _ar_states = self.gym.acquire_actor_root_state_tensor(self.sim)
+        self.root_states = gymtorch.wrap_tensor(_ar_states)
 
     def init_mass_matrix_tensor(self):
         # get mass matrix tensor
@@ -167,3 +173,6 @@ class TensorDataProcessor:
     
     def get_contacted_link_tensor(self):
         return self.contacted_link
+    
+    def get_actor_root_tensor(self):
+        return self.root_states

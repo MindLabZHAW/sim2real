@@ -113,7 +113,7 @@ simulation_data = SimulationData(tensor_data_processor.get_net_contact_force_ten
                                   tensor_data_processor.get_effort_action_tensor(), tensor_data_processor.get_hand_restart_tensor(),
                                   utils.get_jacabian_end_effector(gym, franka_asset, tensor_data_processor.get_jacobian_tensor()),
                                   tensor_data_processor.get_mass_matrix_tensor(), tensor_data_processor.get_dof_vel_tensor(),
-                                  tensor_data_processor.get_default_pos_tensor())
+                                  tensor_data_processor.get_default_pos_tensor(), tensor_data_processor.get_actor_root_tensor())
 
 simulation = Simulation(gym, sim, viewer, device, simulation_data)
 simulation.run(15)
