@@ -28,7 +28,7 @@ class Simulation:
             self.tick(start_time, index_number)
             dataProcessor.process()
             index_number += 1
-            
+
         dataProcessor.save_data()
 
     def tick(self, start_time, index_number):
@@ -122,12 +122,6 @@ class Simulation:
         self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self.sim_data.effort_action))
 
 
-    def save_data_to_dict(self, index_number, start_time):
-        if index_number == 0:
-            self.data_dict = { 'time':  [time.time()-start_time], 'contact' : self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]}
-        self.data_dict['time'] = np.append(self.data_dict['time'],[time.time()-start_time])
-        self.data_dict['contact'] = torch.cat((self.data_dict['contact'] , self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]))
-
     def update_viewer(self):
          # update viewer
         self.gym.step_graphics(self.sim)
@@ -162,7 +156,6 @@ class Simulation:
             self.sim_data.effort_action[:, :7] = utils.control_osc(dpose, self.sim_data.mm, self.sim_data.j_eef, Configuration.KP, Configuration.KP_NULL, Configuration.KD, Configuration.KD_NULL,
                                                                     hand_vel, self.sim_data.dof_vel, self.sim_data.default_dof_pos_tensor, self.sim_data.dof_pos, self.device)
         
-    def get_data_dict(self):
-        return self.data_dict.copy()
+
             
             

@@ -25,16 +25,16 @@ class DataProcessor:
     def process(self):
         #Process the data here
         self.process_contact_force_data()
-        #self.process_rb_state_data()
-        #self.process_dof_state_data()
+        self.process_rb_state_data()
+        self.process_dof_state_data()
         self.index_number += 1
         pass
     
     def save_data(self):
         #save the data into the respective pickle files
         self.save_contact_force_data()
-        #self.save_rb_state_data()
-        #self.save_dof_state_data()
+        self.save_rb_state_data()
+        self.save_dof_state_data()
         pass
     
     def process_contact_force_data(self):
@@ -60,7 +60,7 @@ class DataProcessor:
     
     def process_dof_state_data(self):
         #process the dof_state data here
-        dof_state = self.sim_data.dof_states
+        dof_state = self.sim_data.dof_pos
         if self.index_number == 0:
             self.dof_state_data_dict = {'time': [time.time()-self.start_time], 'dof_state_position': dof_state[:, 0], 'dof_state_velocity': dof_state[:, 1]}
         self.dof_state_data_dict['time'] = np.append(self.dof_state_data_dict['time'],[time.time()-self.start_time])
