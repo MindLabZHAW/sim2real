@@ -66,12 +66,14 @@ class DataProcessor:
     def process_root_state_data(self):
         #process the root_state data 
         root_state = self.sim_data.root_state
+        #print("root_state:",root_state)
+        #print("root_state:",root_state.shape)
         if self.index_number == 0:
-            self.root_state_data_dict = {'time': [time.time()-self.start_time], 'rb_state_position': root_state[0:3], 'root_state_rotation': root_state[3:7], 'root_state_velocity': root_state[7:]}
+            self.root_state_data_dict = {'time': [time.time()-self.start_time], 'root_state_position': root_state[0][0:3], 'root_state_rotation': root_state[0][3:7], 'root_state_velocity': root_state[0][7:]}
         self.root_state_data_dict['time'] = np.append(self.root_state_data_dict['time'],[time.time()-self.start_time])
-        self.root_state_data_dict['root_state_position'] = torch.cat((self.root_state_data_dict['root_state_position'], root_state[0:3]))
-        self.root_state_data_dict['root_state_rotation'] = torch.cat((self.root_state_data_dict['root_state_rotation'], root_state[3:7]))
-        self.root_state_data_dict['root_state_velocity'] = torch.cat((self.root_state_data_dict['root_state_velocity'], root_state[7:]))
+        self.root_state_data_dict['root_state_position'] = torch.cat((self.root_state_data_dict['root_state_position'], root_state[0][0:3]))
+        self.root_state_data_dict['root_state_rotation'] = torch.cat((self.root_state_data_dict['root_state_rotation'], root_state[0][3:7]))
+        self.root_state_data_dict['root_state_velocity'] = torch.cat((self.root_state_data_dict['root_state_velocity'], root_state[0][7:]))
     
     def process_dof_state_data(self):
         #process the dof_state data here

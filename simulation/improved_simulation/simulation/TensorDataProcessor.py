@@ -48,6 +48,7 @@ class TensorDataProcessor:
         self.init_effort_action_tensor()
         self.init_default_dof_pos_tensor(device)
         self.init_contacted_link_tensor()
+        self.init_actor_root_state_tensor()
 
     def init_contacted_link_tensor(self):
         self.contacted_link =torch.zeros_like(torch.tensor(self.panda_idxs))
