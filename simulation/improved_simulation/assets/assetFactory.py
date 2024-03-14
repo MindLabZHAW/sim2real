@@ -2,7 +2,7 @@ from isaacgym import gymapi
 import os
 
 class AssetFactory:
-    TABLE_DIMS = gymapi.Vec3(0.6, 1.0, 0.4)
+    TABLE_DIMS = gymapi.Vec3(0.6, 1.5, 0.4)
     BARRIER_DIMS = gymapi.Vec3(0.05, 0.05, 1)
     BOX_SIZE = 0.045
 
