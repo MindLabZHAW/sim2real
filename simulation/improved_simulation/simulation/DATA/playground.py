@@ -38,4 +38,6 @@ rb_data = playground_rb.print_data_info()
 print("dof_state_data")
 playground_dof = PlayGround('./dof_state_data.pickle')
 dof_data = playground_dof.print_data_info()
-
+print("root_state_data")
+playground_root = PlayGround('./root_state_data.pickle')
+root_data = playground_root.print_data_info()
