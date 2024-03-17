@@ -36,49 +36,67 @@ class Simulation:
         self.step_physics()
         self.refresh_tensors()        
         self.detect_contact()
-    
-        # determine if we have reached the initial position; if so allow the hand to start moving to the box
-        # how far the hand should be from box for grasping
-        grasp_offset = 0.11 if self.sim_data.controller == "ik" else 0.10
-        hand_restart = (self.sim_data.hand_restart & (self.get_distance_from_hand_position_to_initial_position() > 0.02)).squeeze(-1)
-        return_to_start = (hand_restart | self.is_gripper_holding_box(self.get_distance_from_hand_to_box(), grasp_offset).squeeze(-1)).unsqueeze(-1)
 
         # if hand is above box, descend to grasp offset
         # otherwise, seek a position above the box
-        box_rot = self.sim_data.rb_states[self.sim_data.box_idxs, 3:7]
-        yaw_q = utils.cube_grasping_yaw(box_rot, self.sim_data.corners)
-        box_yaw_dir = utils.quat_axis(yaw_q, 0)
-        hand_rot = self.sim_data.rb_states[self.sim_data.hand_idxs, 3:7]
-        hand_yaw_dir = utils.quat_axis(hand_rot, 0)
-        yaw_dot = torch.bmm(box_yaw_dir.view(self.sim_data.num_envs, 1, 3), hand_yaw_dir.view(self.sim_data.num_envs, 3, 1)).squeeze(-1)
-        box_dir = self.get_vector_from_hand_to_box() / self.get_distance_from_hand_to_box()
-        box_dot = box_dir @ self.sim_data.down_dir.view(3, 1)
-        above_box = ((box_dot >= 0.99) & (yaw_dot >= 0.95) & (self.get_distance_from_hand_to_box() < grasp_offset * 3)).squeeze(-1)
-        grasp_pos = self.get_box_position().clone()
-        grasp_pos[:, 2] = torch.where(above_box, self.get_box_position()[:, 2] + grasp_offset, self.get_box_position()[:, 2] + grasp_offset * 2.5)
-
-        # compute goal position and orientation
-        goal_pos = torch.where(return_to_start, self.sim_data.init_pos, grasp_pos)
-        goal_rot = torch.where(return_to_start, self.sim_data.init_rot, quat_mul(self.sim_data.down_q, quat_conjugate(yaw_q)))
+        grasping_position = self.get_box_position().clone()
+        grasping_position[:, 2] = torch.where(self.is_hand_above_box(), self.get_box_position()[:, 2] + self.get_grasping_offset(), self.get_box_position()[:, 2] + self.get_grasping_offset() * 2.5)
 
         # compute position and orientation error
-        pos_err = goal_pos - self.get_hand_position()
-        orn_err = utils.orientation_error(goal_rot, hand_rot)
-        dpose = torch.cat([pos_err, orn_err], -1).unsqueeze(-1)
+        position_and_orientation_error_tensor = torch.cat([self.get_position_error_tensor(grasping_position), self.get_orientation_error_tensor()], -1).unsqueeze(-1)
  
-        self.deploy_control(dpose)
-        
-        # always open the gripper above a certain height, dropping the box and restarting from the beginning
-        hand_restart = hand_restart | (self.get_box_position()[:, 2] > 0.6)
-        keep_going = torch.logical_not(hand_restart)
-        # gripper actions depend on distance between hand and box
-        close_gripper = (self.get_distance_from_hand_to_box() < grasp_offset + 0.02) | self.is_gripper_holding_box(self.get_distance_from_hand_to_box(), grasp_offset)
-        close_gripper = close_gripper & keep_going.unsqueeze(-1)
-        grip_acts = torch.where(close_gripper, torch.Tensor([[0., 0.]] * self.sim_data.num_envs).to(self.device), torch.Tensor([[0.04, 0.04]] * self.sim_data.num_envs).to(self.device))
-        self.sim_data.pos_action[:, 7:9] = grip_acts
+         # Deploy control based on type
+        if self.sim_data.controller == "ik":
+            self.sim_data.pos_action[:, :7] = self.get_new_position_action(position_and_orientation_error_tensor)
+        else:       # osc
+            self.sim_data.effort_action[:, :7] = self.get_new_effort_action(position_and_orientation_error_tensor)    
 
-        self.deploy_actions()
+        self.deploy_pos_and_effort_action_to_franka_robot()
         self.update_viewer()
+
+    def get_orientation_error_tensor(self):
+        goal_rotation = torch.where(self.should_hand_return_to_start_position(), self.sim_data.init_rot, quat_mul(self.sim_data.down_q, quat_conjugate(self.get_cube_grasping_yaw())))
+        return utils.orientation_error(goal_rotation, self.get_hand_rotation())
+
+    def get_position_error_tensor(self, grasping_position):
+        goal_position = torch.where(self.should_hand_return_to_start_position(), self.sim_data.init_pos, grasping_position)
+        position_error = goal_position - self.get_hand_position()
+        return position_error
+        
+
+    def should_gripper_stay_closed(self):
+        # always open the gripper above a certain height, dropping the box and restarting from the beginning
+        keep_going = torch.logical_not(self.is_initial_hand_position_reached() | (self.get_box_position()[:, 2] > 0.6))
+        should_gripper_be_closed = (self.get_distance_from_hand_to_box() < self.get_grasping_offset() + 0.02) | self.is_gripper_holding_box(self.get_distance_from_hand_to_box(), self.get_grasping_offset())
+        return should_gripper_be_closed & keep_going.unsqueeze(-1)
+
+    def is_hand_above_box(self):
+        box_yaw_direction = utils.quat_axis(self.get_cube_grasping_yaw(), 0)
+        hand_yaw_direction = utils.quat_axis(self.get_hand_rotation(), 0)
+        yaw_dot = torch.bmm(box_yaw_direction.view(self.sim_data.num_envs, 1, 3), hand_yaw_direction.view(self.sim_data.num_envs, 3, 1)).squeeze(-1)
+        box_direction = self.get_vector_from_hand_to_box() / self.get_distance_from_hand_to_box()
+        box_dot = box_direction @ self.sim_data.down_dir.view(3, 1)
+        return ((box_dot >= 0.99) & (yaw_dot >= 0.95) & (self.get_distance_from_hand_to_box() < self.get_grasping_offset() * 3)).squeeze(-1)
+
+
+    def get_cube_grasping_yaw(self):
+        box_rotation = self.sim_data.rb_states[self.sim_data.box_idxs, 3:7]
+        return utils.cube_grasping_yaw(box_rotation, self.sim_data.corners)
+
+    def should_hand_return_to_start_position(self):
+         # if initial hand position reached; allow the hand to start moving to the box
+        return (self.is_initial_hand_position_reached() | self.is_gripper_holding_box(self.get_distance_from_hand_to_box(), self.get_grasping_offset()).squeeze(-1)).unsqueeze(-1)
+
+    def is_initial_hand_position_reached(self):
+        # determine if we have reached the initial position; 
+        return (self.sim_data.hand_restart & (self.get_distance_from_hand_position_to_initial_position() > 0.02)).squeeze(-1)
+    
+    def get_grasping_offset(self):
+        # how far the hand should be from box for grasping
+        return 0.11 if self.sim_data.controller == "ik" else 0.10
+
+    def get_hand_rotation(self):
+        return self.sim_data.rb_states[self.sim_data.hand_idxs, 3:7]
 
     def get_distance_from_hand_position_to_initial_position(self):
         return torch.norm(self.get_vector_from_hand_position_to_initial_position(), dim=-1)
@@ -116,7 +134,12 @@ class Simulation:
         gripper_sep = self.sim_data.dof_pos[:, 7] + self.sim_data.dof_pos[:, 8]
         return (gripper_sep < 0.045) & (box_dist < grasp_offset + 0.5 * AssetFactory.BOX_SIZE) #true or false
 
-    def deploy_actions(self):
+    def deploy_pos_and_effort_action_to_franka_robot(self):
+         # gripper actions depend on distance between hand and box
+        should_gripper_stay_closed = self.should_gripper_stay_closed()
+        gripper_actions = torch.where(should_gripper_stay_closed, torch.Tensor([[0., 0.]] * self.sim_data.num_envs).to(self.device), torch.Tensor([[0.04, 0.04]] * self.sim_data.num_envs).to(self.device))
+        self.sim_data.pos_action[:, 7:9] = gripper_actions
+
         # Deploy actions
         self.gym.set_dof_position_target_tensor(self.sim, gymtorch.unwrap_tensor(self.sim_data.pos_action))
         self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self.sim_data.effort_action))
@@ -145,16 +168,15 @@ class Simulation:
         self.gym.refresh_jacobian_tensors(self.sim)
         self.gym.refresh_mass_matrix_tensors(self.sim)
         self.gym.refresh_net_contact_force_tensor(self.sim)
-
-
-    def deploy_control(self, dpose):
+            
+    def get_new_position_action(self, position_and_orientation_error_tensor):
+        return self.sim_data.dof_pos.squeeze(-1)[:, :7] + utils.control_ik(position_and_orientation_error_tensor, self.sim_data.j_eef, self.device, Configuration.DAMPING, self.sim_data.num_envs)
+    
+    def get_new_effort_action(self, position_and_orientation_error_tensor):
         hand_vel = self.sim_data.rb_states[self.sim_data.hand_idxs, 7:]   
-         # Deploy control based on type
-        if self.sim_data.controller == "ik":
-            self.sim_data.pos_action[:, :7] = self.sim_data.dof_pos.squeeze(-1)[:, :7] + utils.control_ik(dpose, self.sim_data.j_eef, self.device, Configuration.DAMPING, self.sim_data.num_envs)
-        else:       # osc
-            self.sim_data.effort_action[:, :7] = utils.control_osc(dpose, self.sim_data.mm, self.sim_data.j_eef, Configuration.KP, Configuration.KP_NULL, Configuration.KD, Configuration.KD_NULL,
+        return utils.control_osc(position_and_orientation_error_tensor, self.sim_data.mm, self.sim_data.j_eef, Configuration.KP, Configuration.KP_NULL, Configuration.KD, Configuration.KD_NULL,
                                                                     hand_vel, self.sim_data.dof_vel, self.sim_data.default_dof_pos_tensor, self.sim_data.dof_pos, self.device)
+
         
 
             
