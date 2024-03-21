@@ -8,7 +8,6 @@ from config.config import Configuration
 
 class SimulationCreator:
     FRANKA_INITIAL_POSITION = gymapi.Vec3(0, 0, 0)
-    TABLE_INITIAL_POSITION = gymapi.Vec3(0.5, 0.0, 0.5 * AssetFactory.TABLE_DIMS.z)
 
     BARRIER_X_RANGE = [0.13, 0.6]
     BARRIER_Y_RANGE = [0.15, 0.3]
@@ -22,7 +21,6 @@ class SimulationCreator:
         self.franka_asset = franka_asset
         self.barrier_asset = None
         self.box_asset = None
-        self.table_asset = None
         self.create_assets(asset_factory)
 
         self.envs = []
@@ -33,7 +31,6 @@ class SimulationCreator:
         self.panda_idxs = []
 
     def create_assets(self, asset_factory):
-        self.table_asset = asset_factory.create_table_asset()
         self.box_asset = asset_factory.create_box_asset()
         self.barrier_asset = asset_factory.create_barrier_asset()
 
@@ -45,18 +42,12 @@ class SimulationCreator:
         franka_pose = gymapi.Transform()
         franka_pose.p = self.FRANKA_INITIAL_POSITION
 
-        table_pose = gymapi.Transform()
-        table_pose.p = self.TABLE_INITIAL_POSITION
-
         box_pose = gymapi.Transform()
 
         for i in range(number_of_envs):
             # create env
             env = self.gym.create_env(sim, Configuration.ENV_LOWER, Configuration.ENV_UPPER, num_per_row)
             self.envs.append(env)
-
-            # add table
-            self.gym.create_actor(env, self.table_asset, table_pose, "table", i, 0)
 
             # add box
             box_pose = self.generate_box_pose(box_pose)
@@ -115,9 +106,9 @@ class SimulationCreator:
 
     def create_vertical_barrier_pose(self, x_offset, y_offset):
         barrier_pose = gymapi.Transform()
-        barrier_pose.p.x = self.TABLE_INITIAL_POSITION.x + x_offset
-        barrier_pose.p.y = self.TABLE_INITIAL_POSITION.y + y_offset
-        barrier_pose.p.z = self.TABLE_INITIAL_POSITION.z * 2
+        barrier_pose.p.x = self.FRANKA_INITIAL_POSITION.x + x_offset
+        barrier_pose.p.y = self.FRANKA_INITIAL_POSITION.y + y_offset
+        barrier_pose.p.z = AssetFactory.BARRIER_DIMS.z * 0.5 + self.FRANKA_INITIAL_POSITION.z
         print(barrier_pose.p.z)
         return barrier_pose
 
@@ -127,8 +118,8 @@ class SimulationCreator:
         """
         x_offset = AssetFactory.BARRIER_DIMS.x if is_attached else 0
 
-        point1 = np.array([barrier_pose1.p.x - x_offset, barrier_pose1.p.y, barrier_pose1.p.z + z_offset1])
-        point2 = np.array([barrier_pose2.p.x - x_offset, barrier_pose2.p.y, barrier_pose2.p.z + z_offset2])
+        point1 = np.array([barrier_pose1.p.x - x_offset, barrier_pose1.p.y, z_offset1])
+        point2 = np.array([barrier_pose2.p.x - x_offset, barrier_pose2.p.y, z_offset2])
 
         rotation_quaternion = self.calculate_rotation_quaternion_for_direction_between_two_points(point1, point2)
 
@@ -169,9 +160,9 @@ class SimulationCreator:
         self.box_idxs.append(box_idx)
 
     def generate_box_pose(self, box_pose):
-        box_pose.p.x = self.TABLE_INITIAL_POSITION.x + np.random.uniform(-0.2, 0.1)
-        box_pose.p.y = self.TABLE_INITIAL_POSITION.y + np.random.uniform(-0.3, 0.3)
-        box_pose.p.z = AssetFactory.TABLE_DIMS.z + 0.5 * AssetFactory.BOX_SIZE
+        box_pose.p.x = self.FRANKA_INITIAL_POSITION.x + np.random.uniform(-0.2, 0.1)
+        box_pose.p.y = self.FRANKA_INITIAL_POSITION.y + np.random.uniform(-0.3, 0.3)
+        box_pose.p.z = 0.5 * AssetFactory.BOX_SIZE
         box_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1), np.random.uniform(-math.pi, math.pi))
         return box_pose
 
