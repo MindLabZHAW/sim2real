@@ -20,18 +20,15 @@ class SimulationCreator:
 
         self.franka_asset = franka_asset
         self.barrier_asset = None
-        self.box_asset = None
         self.create_assets(asset_factory)
 
         self.envs = []
-        self.box_idxs = []
         self.hand_idxs = []
         self.init_pos_list = []
         self.init_rot_list = []
         self.panda_idxs = []
 
     def create_assets(self, asset_factory):
-        self.box_asset = asset_factory.create_box_asset()
         self.barrier_asset = asset_factory.create_barrier_asset()
 
     def create_simulation(self, number_of_envs, sim, num_per_row, franka_dof_props,
@@ -42,16 +39,10 @@ class SimulationCreator:
         franka_pose = gymapi.Transform()
         franka_pose.p = self.FRANKA_INITIAL_POSITION
 
-        box_pose = gymapi.Transform()
-
         for i in range(number_of_envs):
             # create env
             env = self.gym.create_env(sim, Configuration.ENV_LOWER, Configuration.ENV_UPPER, num_per_row)
             self.envs.append(env)
-
-            # add box
-            box_pose = self.generate_box_pose(box_pose)
-            self.add_box(box_pose, env, i)
 
             # add barrier sets (2 vertical + 1 horizontal per set)
             for j in range(self.NUM_OF_BARRIER_SETS):
@@ -151,21 +142,6 @@ class SimulationCreator:
             gymapi.Vec3(rotation_axis[0], rotation_axis[1], rotation_axis[2]), rotation_angle)
         return rotation_quaternion
 
-    def add_box(self, box_pose, env, i):
-        box_handle = self.gym.create_actor(env, self.box_asset, box_pose, "box", i, 1)
-        color = gymapi.Vec3(np.random.uniform(0, 1), np.random.uniform(0, 1), np.random.uniform(0, 1))
-        self.gym.set_rigid_body_color(env, box_handle, 0, gymapi.MESH_VISUAL_AND_COLLISION, color)
-        # get global index of box in rigid body state tensor
-        box_idx = self.gym.get_actor_rigid_body_index(env, box_handle, 0, gymapi.DOMAIN_SIM)
-        self.box_idxs.append(box_idx)
-
-    def generate_box_pose(self, box_pose):
-        box_pose.p.x = self.FRANKA_INITIAL_POSITION.x + np.random.uniform(-0.2, 0.1)
-        box_pose.p.y = self.FRANKA_INITIAL_POSITION.y + np.random.uniform(-0.3, 0.3)
-        box_pose.p.z = 0.5 * AssetFactory.BOX_SIZE
-        box_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1), np.random.uniform(-math.pi, math.pi))
-        return box_pose
-
     def set_up_franka(self, env, franka_handle, franka_dof_props, default_dof_state, default_dof_pos):
         # set dof properties
         self.gym.set_actor_dof_properties(env, franka_handle, franka_dof_props)
@@ -197,9 +173,6 @@ class SimulationCreator:
 
     def get_envs(self):
         return self.envs
-
-    def get_box_idxs(self):
-        return self.box_idxs
 
     def get_hand_idxs(self):
         return self.hand_idxs

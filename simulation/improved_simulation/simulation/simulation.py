@@ -64,8 +64,12 @@ class Simulation:
         return position_error
 
     def get_cube_grasping_yaw(self):
-        box_rotation = self.sim_data.rb_states[self.sim_data.box_idxs, 3:7]
-        return utils.cube_grasping_yaw(box_rotation, self.sim_data.corners)
+        box_rotation = to_torch([[-1.0834e-04,  1.9042e-04, -9.9899e-01,  4.4938e-02]], device=self.device) #hard-coded to remove box
+        # hard-code corners to remove box
+        box_half_size = 0.045 * 0.5
+        corner_coord = torch.Tensor([box_half_size, box_half_size, box_half_size])
+        corners = torch.stack(self.sim_data.num_envs * [corner_coord]).to(self.device)
+        return utils.cube_grasping_yaw(box_rotation, corners)
 
     def get_hand_rotation(self):
         return self.sim_data.rb_states[self.sim_data.hand_idxs, 3:7]

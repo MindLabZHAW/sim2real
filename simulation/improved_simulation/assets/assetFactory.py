@@ -3,16 +3,10 @@ import os
 
 class AssetFactory:
     BARRIER_DIMS = gymapi.Vec3(0.05, 0.05, 1)
-    BOX_SIZE = 0.045
 
     def __init__(self, gym, sim):
         self.gym = gym
         self.sim = sim
-    
-    def create_box_asset(self):
-        # create box asset
-        asset_options = gymapi.AssetOptions()
-        return self.gym.create_box(self.sim, self.BOX_SIZE, self.BOX_SIZE, self.BOX_SIZE, asset_options)
     
     def create_barrier_asset(self):
         # create barrier asset
