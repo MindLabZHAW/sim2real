@@ -7,8 +7,6 @@ class ForcedContactMovement():
         self.initial_position = initial_position
         self.current_position = initial_position
         self.count_movement = 0
-        super().__init__()
-    
 
     def get_coordinates_for_next_position(self, rigid_body_state_tensor, index_number):
         
