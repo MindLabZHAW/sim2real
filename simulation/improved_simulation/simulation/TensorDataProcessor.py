@@ -23,7 +23,6 @@ class TensorDataProcessor:
         self.rb_states = None
         self.net_contact_force = None
         self.hand_restart = None
-        self.corners = None
         self.dof_pos = None
         self.dof_vel = None
         self.pos_action = None
@@ -40,7 +39,6 @@ class TensorDataProcessor:
         self.init_rigid_body_state_tensor()
         self.init_net_contact_force_tensor()
         self.init_hand_restart_tensor(device)
-        self.init_box_corners_tensor(device)
         self.init_dof_pos_tensor()
         self.init_dof_vel_tensor()
         self.init_pos_action_tensor()
@@ -76,12 +74,6 @@ class TensorDataProcessor:
         _dof_states = self.gym.acquire_dof_state_tensor(self.sim)
         dof_states = gymtorch.wrap_tensor(_dof_states)
         self.dof_pos = dof_states[:, 0].view(self.num_envs, 9, 1)
-
-    def init_box_corners_tensor(self, device):
-        # box corner coords, used to determine grasping yaw
-        box_half_size = 0.5 * AssetFactory.BOX_SIZE
-        corner_coord = torch.Tensor([box_half_size, box_half_size, box_half_size])
-        self.corners = torch.stack(self.num_envs * [corner_coord]).to(device)
 
     def init_hand_restart_tensor(self, device):
         # Create a tensor noting whether the hand should return to the initial position
@@ -153,9 +145,7 @@ class TensorDataProcessor:
     
     def get_hand_restart_tensor(self):
         return self.hand_restart
-    
-    def get_box_corners_tensor(self):
-        return self.corners
+
     
     def get_dof_vel_tensor(self):
         return self.dof_vel
