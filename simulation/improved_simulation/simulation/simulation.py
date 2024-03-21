@@ -2,6 +2,7 @@ import time
 from assets.assetFactory import AssetFactory
 from config.config import Configuration
 from simulation.dataProcessor import DataProcessor
+from simulation.movement.RectangleMovement import RectangleMovement
 from simulation.movement.RandomMovement import RandomMovement
 from simulation.movement.ForcedContactMovement import ForcedContactMovement
 from utils import utils
@@ -17,7 +18,7 @@ class Simulation:
         self.device = device
         self.sim_data = sim_data
         self.data_dict = []
-        self.movemenet = RandomMovement(self.sim_data.init_pos)
+        self.movement = ForcedContactMovement(self.sim_data.init_pos, self.sim_data.init_rot)
 
     def run(self, duration_time):
         # simulation loop
@@ -40,10 +41,10 @@ class Simulation:
         self.refresh_tensors()        
         self.detect_contact()
 
-        coordinates_for_new_position_tensor = self.movemenet.get_coordinates_for_next_position(self.sim_data.rb_states, index_number)
+        coordinates_for_new_position_tensor, rotation_new_position = self.movement.get_coordinates_and_rotation_for_next_position(self.sim_data.rb_states, index_number)
 
         # compute position and orientation error
-        position_and_orientation_error_tensor = torch.cat([self.get_position_error_tensor(coordinates_for_new_position_tensor), self.get_orientation_error_tensor()], -1).unsqueeze(-1)
+        position_and_orientation_error_tensor = torch.cat([self.get_position_error_tensor(coordinates_for_new_position_tensor), self.get_orientation_error_tensor(rotation_new_position)], -1).unsqueeze(-1)
  
          # Deploy control based on type
         if self.sim_data.controller == "ik":
@@ -54,22 +55,12 @@ class Simulation:
         self.deploy_pos_and_effort_action_to_franka_robot()
         self.update_viewer()
 
-    def get_orientation_error_tensor(self):
-        goal_rotation = quat_mul(self.sim_data.down_q, quat_conjugate(self.get_cube_grasping_yaw()))
-        return utils.orientation_error(goal_rotation, self.get_hand_rotation())
+    def get_orientation_error_tensor(self, rotation):
+        return utils.orientation_error(rotation, self.get_hand_rotation())
 
-    def get_position_error_tensor(self, grasping_position):
-        goal_position = grasping_position
-        position_error = goal_position - self.get_hand_position()
+    def get_position_error_tensor(self, position):
+        position_error = position - self.get_hand_position()
         return position_error
-
-    def get_cube_grasping_yaw(self):
-        box_rotation = to_torch([[-1.0834e-04,  1.9042e-04, -9.9899e-01,  4.4938e-02]], device=self.device) #hard-coded to remove box
-        # hard-code corners to remove box
-        box_half_size = 0.045 * 0.5
-        corner_coord = torch.Tensor([box_half_size, box_half_size, box_half_size])
-        corners = torch.stack(self.sim_data.num_envs * [corner_coord]).to(self.device)
-        return utils.cube_grasping_yaw(box_rotation, corners)
 
     def get_hand_rotation(self):
         return self.sim_data.rb_states[self.sim_data.hand_idxs, 3:7]
