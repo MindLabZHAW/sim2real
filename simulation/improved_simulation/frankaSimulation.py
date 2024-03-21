@@ -20,26 +20,24 @@ conda activate rlgpu
 export LD_LIBRARY_PATH=/home/mindlab/miniconda3/envs/rlgpu/lib/
 python frankaSimulation.py
 '''
+import math
 import os
+import pickle as pkl
+
 from isaacgym import gymapi
 from isaacgym import gymutil
-from isaacgym.torch_utils import *
 
-import math
-import numpy as np
-import torch
-import pickle as pkl
-from simulation.TensorDataProcessor import TensorDataProcessor
-from utils import utils
 from assets.assetFactory import AssetFactory
-from simulation.SimulationData import SimulationData
-from simulation.simulation import Simulation
-from simulation.simulationCreator import SimulationCreator
 from config.config import Configuration
 from simulation.DofDataProcessor import DofDataProcessor
+from simulation.SimulationData import SimulationData
+from simulation.TensorDataProcessor import TensorDataProcessor
+from simulation.simulation import Simulation
+from simulation.simulationCreator import SimulationCreator
+from utils import utils
 
 # set random seed
-np.random.seed(42)
+#np.random.seed(42)
 gym = gymapi.acquire_gym()
 
 # parse arguments
@@ -90,8 +88,8 @@ print("Creating %d environments" % num_envs)
 
 default_dof_pos = dof_data_processor.get_default_dof_pos()
 
-simulation_creator = SimulationCreator(gym, asset_creator.create_table_asset(), asset_creator.create_box_asset(), asset_creator.create_barrier_asset(), franka_asset)
-simulation_creator.create_simulation(num_envs, AssetFactory.TABLE_DIMS, sim, num_per_row, dof_data_processor.get_franka_dof_props(),
+simulation_creator = SimulationCreator(gym, asset_creator, franka_asset)
+simulation_creator.create_simulation(num_envs, sim, num_per_row, dof_data_processor.get_franka_dof_props(),
                                    dof_data_processor.get_default_dof_state(), default_dof_pos)
 
 utils.point_camera_at_middle_env(gym, viewer, num_envs, simulation_creator.get_envs(), num_per_row)
