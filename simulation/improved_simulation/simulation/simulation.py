@@ -1,7 +1,9 @@
+import random
 import time
 from assets.assetFactory import AssetFactory
 from config.config import Configuration
 from simulation.dataProcessor import DataProcessor
+from simulation.movement.ForcedContactMovement import ForcedContactMovement
 from utils import utils
 import torch
 from isaacgym import gymtorch
@@ -15,6 +17,7 @@ class Simulation:
         self.device = device
         self.sim_data = sim_data
         self.data_dict = []
+        self.movemenet = ForcedContactMovement(self.sim_data.init_pos)
 
     def run(self, duration_time):
         # simulation loop
@@ -37,13 +40,10 @@ class Simulation:
         self.refresh_tensors()        
         self.detect_contact()
 
-        # if hand is above box, descend to grasp offset
-        # otherwise, seek a position above the box
-        grasping_position = self.get_box_position().clone()
-        grasping_position[:, 2] = torch.where(self.is_hand_above_box(), self.get_box_position()[:, 2] + self.get_grasping_offset(), self.get_box_position()[:, 2] + self.get_grasping_offset() * 2.5)
+        coordinates_for_new_position_tensor = self.movemenet.get_coordinates_for_next_position(self.sim_data.rb_states, index_number)
 
         # compute position and orientation error
-        position_and_orientation_error_tensor = torch.cat([self.get_position_error_tensor(grasping_position), self.get_orientation_error_tensor()], -1).unsqueeze(-1)
+        position_and_orientation_error_tensor = torch.cat([self.get_position_error_tensor(coordinates_for_new_position_tensor), self.get_orientation_error_tensor()], -1).unsqueeze(-1)
  
          # Deploy control based on type
         if self.sim_data.controller == "ik":
