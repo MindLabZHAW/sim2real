@@ -6,26 +6,40 @@ import time
 import pickle as pkl
 
 class DataProcessor:
-    def __init__(self, data, start_time, index_number):
-        self.data = data
+    def __init__(self, data, start_time):
+        self.sim_data = data
         self.start_time = start_time
-        self.index_number = index_number
         self.cf_data_dict = []
         self.rb_state_data_dict = []
+        self.root_state_data_dict = []
+        self.index_number = 0
+    
+    def cleanup(self):
+        if os.path.exists(os.getcwd()+'/simulation/DATA/contact_force_data.pickle'):
+            os.remove(os.getcwd()+'/simulation/DATA/contact_force_data.pickle')
+            print("File deleted")
+        if os.path.exists(os.getcwd()+'/simulation/DATA/rb_state_data.pickle'):
+            os.remove(os.getcwd()+'/simulation/DATA/rb_state_data.pickle')
+        if os.path.exists(os.getcwd()+'/simulation/DATA/dof_state_data.pickle'):
+            os.remove(os.getcwd()+'/simulation/DATA/dof_state_data.pickle')
+        if os.path.exists(os.getcwd()+'/simulation/DATA/root_state_data.pickle'):
+            os.remove(os.getcwd()+'/simulation/DATA/root_state_data.pickle')
 
     def process(self):
         #Process the data here
         self.process_contact_force_data()
-        #self.process_rb_state_data()
-        #self.process_dof_state_data()
+        self.process_rb_state_data()
+        self.process_dof_state_data()
+        self.process_root_state_data()
         self.index_number += 1
         pass
     
     def save_data(self):
         #save the data into the respective pickle files
         self.save_contact_force_data()
-        #self.save_rb_state_data()
-        #self.save_dof_state_data()
+        self.save_rb_state_data()
+        self.save_dof_state_data()
+        self.save_root_state_data()
         pass
     
     def process_contact_force_data(self):
@@ -49,9 +63,21 @@ class DataProcessor:
         #Linear velocity is [7:10] and angular velocity is [10:13]
         pass
     
+    def process_root_state_data(self):
+        #process the root_state data 
+        root_state = self.sim_data.root_state
+        #print("root_state:",root_state)
+        #print("root_state:",root_state.shape)
+        if self.index_number == 0:
+            self.root_state_data_dict = {'time': [time.time()-self.start_time], 'root_state_position': root_state[0][0:3], 'root_state_rotation': root_state[0][3:7], 'root_state_velocity': root_state[0][7:]}
+        self.root_state_data_dict['time'] = np.append(self.root_state_data_dict['time'],[time.time()-self.start_time])
+        self.root_state_data_dict['root_state_position'] = torch.cat((self.root_state_data_dict['root_state_position'], root_state[0][0:3]))
+        self.root_state_data_dict['root_state_rotation'] = torch.cat((self.root_state_data_dict['root_state_rotation'], root_state[0][3:7]))
+        self.root_state_data_dict['root_state_velocity'] = torch.cat((self.root_state_data_dict['root_state_velocity'], root_state[0][7:]))
+    
     def process_dof_state_data(self):
         #process the dof_state data here
-        dof_state = self.sim_data.dof_states
+        dof_state = self.sim_data.dof_pos
         if self.index_number == 0:
             self.dof_state_data_dict = {'time': [time.time()-self.start_time], 'dof_state_position': dof_state[:, 0], 'dof_state_velocity': dof_state[:, 1]}
         self.dof_state_data_dict['time'] = np.append(self.dof_state_data_dict['time'],[time.time()-self.start_time])
@@ -61,19 +87,25 @@ class DataProcessor:
     
     def save_contact_force_data(self):
         #save the contact force data into a pickle file
-        dataPath = os.getcwd()+'/DATA/contact_force_data.pickle'
+        dataPath = os.getcwd()+'/simulation/DATA/contact_force_data.pickle'
         pkl.dump(self.cf_data_dict, open(dataPath, 'wb'))
         pass
         
     def save_rb_state_data(self):
         #save the rb_state data into a pickle file
-        dataPath = os.getcwd()+'/DATA/rb_state_data.pickle'
+        dataPath = os.getcwd()+'/simulation/DATA/rb_state_data.pickle'
         pkl.dump(self.rb_state_data_dict, open(dataPath, 'wb'))
+        pass
+    
+    def save_root_state_data(self):
+        #save the rb_state data into a pickle file
+        dataPath = os.getcwd()+'/simulation/DATA/root_state_data.pickle'
+        pkl.dump(self.root_state_data_dict, open(dataPath, 'wb'))
         pass
     
     def save_dof_state_data(self):
         #save the dof_state data into a pickle file
-        dataPath = os.getcwd()+'/DATA/dof_state_data.pickle'
+        dataPath = os.getcwd()+'/simulation/DATA/dof_state_data.pickle'
         pkl.dump(self.dof_state_data_dict, open(dataPath, 'wb'))
         pass
     
