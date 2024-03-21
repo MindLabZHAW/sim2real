@@ -1,8 +1,8 @@
-import random
 import time
 from assets.assetFactory import AssetFactory
 from config.config import Configuration
 from simulation.dataProcessor import DataProcessor
+from simulation.movement.RandomMovement import RandomMovement
 from simulation.movement.ForcedContactMovement import ForcedContactMovement
 from utils import utils
 import torch
@@ -17,7 +17,7 @@ class Simulation:
         self.device = device
         self.sim_data = sim_data
         self.data_dict = []
-        self.movemenet = ForcedContactMovement(self.sim_data.init_pos)
+        self.movemenet = RandomMovement(self.sim_data.init_pos)
 
     def run(self, duration_time):
         # simulation loop
