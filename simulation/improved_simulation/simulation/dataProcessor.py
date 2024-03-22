@@ -55,12 +55,12 @@ class DataProcessor:
         #process the rb_state data here
         rb_state = self.sim_data.rb_states
         if self.index_number == 0:
-            self.rb_state_data_dict = {'time': [time.time()-self.start_time], 'rb_state_position': rb_state[self.sim_data.panda_idxs][0:3], 'rb_state_rotation': rb_state[self.sim_data.panda_idxs][3:7], 'rb_state_linear_velocity': rb_state[self.sim_data.panda_idxs][7:10], 'rb_state_angular_velocity': rb_state[self.sim_data.panda_idxs][10:]}
+            self.rb_state_data_dict = {'time': [time.time()-self.start_time], 'rb_state_position': rb_state[self.sim_data.panda_idxs][0:3], 'rb_state_rotation': rb_state[self.sim_data.panda_idxs][3:7], 'rb_state_linear_velocity': rb_state[self.sim_data.panda_idxs][7:10], 'rb_state_angular_velocity': rb_state[self.sim_data.panda_idxs][10:13]}
         self.rb_state_data_dict['time'] = np.append(self.rb_state_data_dict['time'],[time.time()-self.start_time])
         self.rb_state_data_dict['rb_state_position'] = torch.cat((self.rb_state_data_dict['rb_state_position'], rb_state[self.sim_data.panda_idxs][0:3]))
         self.rb_state_data_dict['rb_state_rotation'] = torch.cat((self.rb_state_data_dict['rb_state_rotation'], rb_state[self.sim_data.panda_idxs][3:7]))
         self.rb_state_data_dict['rb_state_linear_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_linear_velocity'], rb_state[self.sim_data.panda_idxs][7:10]))
-        self.rb_state_data_dict['rb_state_angular_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_angular_velocity'], rb_state[self.sim_data.panda_idxs][10:]))
+        self.rb_state_data_dict['rb_state_angular_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_angular_velocity'], rb_state[self.sim_data.panda_idxs][10:13]))
         #Linear velocity is [7:10] and angular velocity is [10:13]
         pass
     
