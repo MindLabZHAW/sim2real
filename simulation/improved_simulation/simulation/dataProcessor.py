@@ -29,8 +29,8 @@ class DataProcessor:
         #Process the data here
         self.process_contact_force_data()
         self.process_rb_state_data()
-        self.process_dof_state_data()
-        self.process_root_state_data()
+        #self.process_dof_state_data()
+        #self.process_root_state_data()
         self.index_number += 1
         pass
     
@@ -38,8 +38,8 @@ class DataProcessor:
         #save the data into the respective pickle files
         self.save_contact_force_data()
         self.save_rb_state_data()
-        self.save_dof_state_data()
-        self.save_root_state_data()
+        #self.save_dof_state_data()
+        #self.save_root_state_data()
         pass
     
     def process_contact_force_data(self):
@@ -53,6 +53,7 @@ class DataProcessor:
         #TODO: Set an additional field for contact label
         #TODO: Test whether the Tensor processing is correct!!!!
         #process the rb_state data here
+        #get_joint_velocity(self: Gym, arg0: Env, arg1: int)
         rb_state = self.sim_data.rb_states
         if self.index_number == 0:
             self.rb_state_data_dict = {'time': [time.time()-self.start_time], 'rb_state_position': rb_state[self.sim_data.panda_idxs][0:3], 'rb_state_rotation': rb_state[self.sim_data.panda_idxs][3:7], 'rb_state_velocity': rb_state[self.sim_data.panda_idxs][7:13],'rb_state_linear_velocity': rb_state[self.sim_data.panda_idxs][7:10], 'rb_state_angular_velocity': rb_state[self.sim_data.panda_idxs][10:13]}
@@ -109,6 +110,21 @@ class DataProcessor:
         #save the dof_state data into a pickle file
         dataPath = os.getcwd()+'/simulation/DATA/dof_state_data.pickle'
         pkl.dump(self.dof_state_data_dict, open(dataPath, 'wb'))
+        pass
+
+    def calculate_collision_free_joint_angles(self):
+        pass
+
+    def calculate_collision_free_joint_velocities(self):
+        pass
+
+    def calculate_collision_free_link_poses(self):
+        pass
+
+    def calculate_collision_free_link_velocities(self):
+        pass
+
+    def calculate_target_link_poses(self):
         pass
     
     def contact_detection(self):
