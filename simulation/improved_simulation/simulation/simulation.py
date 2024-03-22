@@ -24,7 +24,7 @@ class Simulation:
         # simulation loop
         start_time = time.time()
 
-        dataProcessor = DataProcessor(self.sim_data, start_time)
+        dataProcessor = DataProcessor(self.sim_data, start_time, self.gym, self.sim)
         dataProcessor.cleanup()
 
         index_number = 0

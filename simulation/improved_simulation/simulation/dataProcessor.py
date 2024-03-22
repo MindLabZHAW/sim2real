@@ -6,13 +6,15 @@ import time
 import pickle as pkl
 
 class DataProcessor:
-    def __init__(self, data, start_time):
+    def __init__(self, data, start_time, gym, sim):
         self.sim_data = data
         self.start_time = start_time
         self.cf_data_dict = []
         self.rb_state_data_dict = []
         self.root_state_data_dict = []
         self.index_number = 0
+        self.gym = gym
+        self.sim = sim
     
     def cleanup(self):
         if os.path.exists(os.getcwd()+'/simulation/DATA/contact_force_data.pickle'):
