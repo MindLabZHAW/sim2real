@@ -27,7 +27,7 @@ class PlayGround:
         for key in keys:
             print(key)
             if key == "joint_velocity1":
-                print(self.data[key])
+                print("Lenght for joint velocity list:",len(self.data[key]))
             else:
                 #print("Data for:",key, self.data[key])
                 print("Shape for:",key, self.data[key].shape)
