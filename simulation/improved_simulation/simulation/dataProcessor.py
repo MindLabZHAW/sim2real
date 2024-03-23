@@ -55,6 +55,7 @@ class DataProcessor:
         #joint_name=self.gym.get_joint_name(self.gym.get_env(self.sim, self.sim_data.envs),joint_handle) 
         #TODO: For loop over all envs
         env = self.gym.get_env(self.sim, 0)
+        #['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4', 'panda_joint5','panda_joint6', 'panda_joint7', 'panda_finger_joint1', 'panda_finger_joint2']
         joint_handle = self.gym.get_joint_handle(env ,"franka", "panda_joint1")
         joint_velocities = self.gym.get_joint_velocity(env, joint_handle)
         return joint_velocities
@@ -74,8 +75,8 @@ class DataProcessor:
         self.rb_state_data_dict['rb_state_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_velocity'], rb_state[self.sim_data.panda_idxs][7:13]))
         self.rb_state_data_dict['rb_state_linear_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_linear_velocity'], rb_state[self.sim_data.panda_idxs][7:10]))
         self.rb_state_data_dict['rb_state_angular_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_angular_velocity'], rb_state[self.sim_data.panda_idxs][10:13]))
-        #print(self.joint_velocities)
-        self.rb_state_data_dict['joint_velocity1'] = self.joint_velocities.append(self.process_joint_data())
+        self.joint_velocities.append(self.process_joint_data())
+        self.rb_state_data_dict['joint_velocity1'] = self.joint_velocities
         #Linear velocity is [7:10] and angular velocity is [10:13]
         pass
     

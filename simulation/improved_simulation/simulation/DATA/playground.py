@@ -25,9 +25,13 @@ class PlayGround:
         print(self.data.keys())
         keys = self.data.keys()
         for key in keys:
-            #print("Data for:",key, self.data[key])
-            print("Shape for:",key, self.data[key].shape)
-            print("[0] for ",key, self.data[key][0])
+            print(key)
+            if key == "joint_velocity1":
+                print(self.data[key])
+            else:
+                #print("Data for:",key, self.data[key])
+                print("Shape for:",key, self.data[key].shape)
+                print("[0] for ",key, self.data[key][0])
             
 playground_cf = PlayGround('./contact_force_data.pickle') 
 print("cf_data")

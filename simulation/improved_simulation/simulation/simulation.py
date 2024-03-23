@@ -75,7 +75,7 @@ class Simulation:
         #print(net_cf[panda_idxs])
         if self.has_contact():
             print('There is a Contact :(') 
-            print(self.sim_data.net_cf[self.sim_data.panda_idxs])
+            #print(self.sim_data.net_cf[self.sim_data.panda_idxs])
         else:
             print('There is no Contact :)')
             #print(contacted_link)
