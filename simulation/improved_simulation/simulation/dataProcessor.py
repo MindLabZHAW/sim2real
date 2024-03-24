@@ -15,7 +15,10 @@ class DataProcessor:
         self.index_number = 0
         self.gym = gym
         self.sim = sim
-        self.joint_velocities = []
+        self.joint_names = ["panda_joint1", "panda_joint2", "panda_joint3", "panda_joint4", 
+                            "panda_joint5", "panda_joint6", "panda_joint7", 
+                            "panda_finger_joint1", "panda_finger_joint2"]
+        self.joint_velocities_tensor = None
     
     def cleanup(self):
         if os.path.exists(os.getcwd()+'/simulation/DATA/contact_force_data.pickle'):
@@ -52,33 +55,40 @@ class DataProcessor:
         self.cf_data_dict['contact'] = torch.cat((self.cf_data_dict['contact'] , self.sim_data.net_cf[self.sim_data.panda_idxs][None,:,:]))
 
     def process_joint_data(self):
-        #joint_name=self.gym.get_joint_name(self.gym.get_env(self.sim, self.sim_data.envs),joint_handle) 
-        #TODO: For loop over all envs
         env = self.gym.get_env(self.sim, 0)
-        #['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4', 'panda_joint5','panda_joint6', 'panda_joint7', 'panda_finger_joint1', 'panda_finger_joint2']
-        joint_handle = self.gym.get_joint_handle(env ,"franka", "panda_joint1")
-        joint_velocities = self.gym.get_joint_velocity(env, joint_handle)
-        return joint_velocities
+        joint_velocities_list = []
+
+        # Iterate over each joint and collect its velocity
+        for joint_name in self.joint_names:
+            joint_handle = self.gym.get_joint_handle(env, "franka", joint_name)
+            joint_velocities = self.gym.get_joint_velocity(env, joint_handle)
+            joint_velocities_list.append(joint_velocities)
+        
+        # Convert the list to a PyTorch tensor
+        self.joint_velocities_tensor = torch.tensor(joint_velocities_list)
+        
+        return self.joint_velocities_tensor
         
     def process_rb_state_data(self):
-        #TODO: Find out why in cf data there is [None,:,:]
-        #TODO: Set an additional field for contact label
-        #TODO: Test whether the Tensor processing is correct!!!!
-        #process the rb_state data here
         rb_state = self.sim_data.rb_states
         if self.index_number == 0:
-            self.joint_velocities.append(self.process_joint_data())
-            self.rb_state_data_dict = {'time': [time.time()-self.start_time], 'rb_state_position': rb_state[self.sim_data.panda_idxs][0:3], 'rb_state_rotation': rb_state[self.sim_data.panda_idxs][3:7], 'rb_state_velocity': rb_state[self.sim_data.panda_idxs][7:13],'rb_state_linear_velocity': rb_state[self.sim_data.panda_idxs][7:10], 'rb_state_angular_velocity': rb_state[self.sim_data.panda_idxs][10:13], "joint_velocity1": self.joint_velocities}
-        self.rb_state_data_dict['time'] = np.append(self.rb_state_data_dict['time'],[time.time()-self.start_time])
-        self.rb_state_data_dict['rb_state_position'] = torch.cat((self.rb_state_data_dict['rb_state_position'], rb_state[self.sim_data.panda_idxs][0:3]))
-        self.rb_state_data_dict['rb_state_rotation'] = torch.cat((self.rb_state_data_dict['rb_state_rotation'], rb_state[self.sim_data.panda_idxs][3:7]))
-        self.rb_state_data_dict['rb_state_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_velocity'], rb_state[self.sim_data.panda_idxs][7:13]))
-        self.rb_state_data_dict['rb_state_linear_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_linear_velocity'], rb_state[self.sim_data.panda_idxs][7:10]))
-        self.rb_state_data_dict['rb_state_angular_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_angular_velocity'], rb_state[self.sim_data.panda_idxs][10:13]))
-        self.joint_velocities.append(self.process_joint_data())
-        self.rb_state_data_dict['joint_velocity1'] = self.joint_velocities
-        #Linear velocity is [7:10] and angular velocity is [10:13]
-        pass
+            self.joint_velocities_tensor = self.process_joint_data().unsqueeze(0)  # Initialize the tensor with shape (1, num_joints)
+            self.rb_state_data_dict = {'time': torch.tensor([time.time()-self.start_time]), 
+                                       'rb_state_position': torch.tensor(rb_state[self.sim_data.panda_idxs][0:3]), 
+                                       'rb_state_rotation': torch.tensor(rb_state[self.sim_data.panda_idxs][3:7]), 
+                                       'rb_state_velocity': torch.tensor(rb_state[self.sim_data.panda_idxs][7:13]),
+                                       'rb_state_linear_velocity': torch.tensor(rb_state[self.sim_data.panda_idxs][7:10]), 
+                                       'rb_state_angular_velocity': torch.tensor(rb_state[self.sim_data.panda_idxs][10:13]), 
+                                       "joint_velocities": self.joint_velocities_tensor}
+
+        self.rb_state_data_dict['time'] = torch.cat((self.rb_state_data_dict['time'], torch.tensor([time.time()-self.start_time])))
+        self.rb_state_data_dict['rb_state_position'] = torch.cat((self.rb_state_data_dict['rb_state_position'], torch.tensor(rb_state[self.sim_data.panda_idxs][0:3])))
+        self.rb_state_data_dict['rb_state_rotation'] = torch.cat((self.rb_state_data_dict['rb_state_rotation'], torch.tensor(rb_state[self.sim_data.panda_idxs][3:7])))
+        self.rb_state_data_dict['rb_state_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_velocity'], torch.tensor(rb_state[self.sim_data.panda_idxs][7:13])))
+        self.rb_state_data_dict['rb_state_linear_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_linear_velocity'], torch.tensor(rb_state[self.sim_data.panda_idxs][7:10])))
+        self.rb_state_data_dict['rb_state_angular_velocity'] = torch.cat((self.rb_state_data_dict['rb_state_angular_velocity'], torch.tensor(rb_state[self.sim_data.panda_idxs][10:13])))
+        self.joint_velocities_tensor = torch.cat((self.joint_velocities_tensor, self.process_joint_data().unsqueeze(0)), dim=0)
+        self.rb_state_data_dict['joint_velocities'] = self.joint_velocities_tensor
     
     def process_root_state_data(self):
         #process the root_state data 
