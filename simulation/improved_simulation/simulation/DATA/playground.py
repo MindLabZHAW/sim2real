@@ -32,7 +32,11 @@ class PlayGround:
                 #print("Data for:",key, self.data[key])
                 print("Shape for:",key, self.data[key].shape)
                 print("[0] for ",key, self.data[key][0])
-            
+
+
+playground_jacobian = PlayGround('./jacobian.pickle')   
+print("jacobian")
+jacobian_data = playground_jacobian.print_data_info()     
 playground_cf = PlayGround('./contact_force_data.pickle') 
 print("cf_data")
 cf_data = playground_cf.print_data_info()
