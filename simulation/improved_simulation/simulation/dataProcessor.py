@@ -12,6 +12,7 @@ class DataProcessor:
         self.cf_data_dict = []
         self.rb_state_data_dict = []
         self.root_state_data_dict = []
+        self.jacobian_data_dict = []
         self.index_number = 0
         self.gym = gym
         self.sim = sim
@@ -30,6 +31,8 @@ class DataProcessor:
             os.remove(os.getcwd()+'/simulation/DATA/dof_state_data.pickle')
         if os.path.exists(os.getcwd()+'/simulation/DATA/root_state_data.pickle'):
             os.remove(os.getcwd()+'/simulation/DATA/root_state_data.pickle')
+        if os.path.exists(os.getcwd()+'/simulation/DATA/jacobian.pickle'):
+            os.remove(os.getcwd()+'/simulation/DATA/jacobian.pickle')
 
     def process(self):
         #Process the data here
@@ -86,6 +89,13 @@ class DataProcessor:
         self.joint_velocities_tensor = torch.cat((self.joint_velocities_tensor, self.process_joint_data().unsqueeze(0)), dim=0)
         self.rb_state_data_dict['joint_velocities'] = self.joint_velocities_tensor
     
+    def process_jacobian_data(self):
+        if self.index_number == 0:
+            self.jacobian_data_dict = {'time': [time.time()-self.start_time], 'jacobian': self.sim_data.jacobian[None,:,:]}
+        self.jacobian_data_dict['time'] = np.append(self.jacobian_data_dict['time'],[time.time()-self.start_time])
+        self.jacobian_data_dict['jacobian'] = torch.cat((self.jacobian_data_dict['jacobian'], self.sim_data.jacobian[None,:,:]))
+        pass
+    
     def process_root_state_data(self):
         #process the root_state data 
         root_state = self.sim_data.root_state
@@ -118,6 +128,11 @@ class DataProcessor:
         #save the rb_state data into a pickle file
         dataPath = os.getcwd()+'/simulation/DATA/rb_state_data.pickle'
         pkl.dump(self.rb_state_data_dict, open(dataPath, 'wb'))
+        pass
+    
+    def save_jacobian_data(self):
+        dataPath = os.getcwd()+'/simulation/DATA/jacobian.pickle'
+        pkl.dump(self.jacobian_data_dict, open(dataPath, 'wb'))
         pass
     
     def save_root_state_data(self):
