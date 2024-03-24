@@ -57,14 +57,10 @@ class DataProcessor:
     def process_joint_data(self):
         env = self.gym.get_env(self.sim, 0)
         joint_velocities_list = []
-
-        # Iterate over each joint and collect its velocity
         for joint_name in self.joint_names:
             joint_handle = self.gym.get_joint_handle(env, "franka", joint_name)
             joint_velocities = self.gym.get_joint_velocity(env, joint_handle)
             joint_velocities_list.append(joint_velocities)
-        
-        # Convert the list to a PyTorch tensor
         self.joint_velocities_tensor = torch.tensor(joint_velocities_list)
         
         return self.joint_velocities_tensor
