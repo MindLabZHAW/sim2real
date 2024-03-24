@@ -27,6 +27,8 @@ class SimulationCreator:
         self.init_pos_list = []
         self.init_rot_list = []
         self.panda_idxs = []
+        self.link_dict = []
+        self.dof_dict = []
 
     def create_assets(self, asset_factory):
         self.barrier_asset = asset_factory.create_barrier_asset()
@@ -52,6 +54,10 @@ class SimulationCreator:
             franka_handle = self.gym.create_actor(env, self.franka_asset, franka_pose, "franka", i, 2)
             self.set_up_franka(env, franka_handle, franka_dof_props, default_dof_state, default_dof_pos)
             self.get_initial_hand_pose(env, franka_handle)
+
+            #Get asset data
+            self.link_dict = self.gym.get_asset_rigid_body_dict(self.franka_asset)
+            self.dof_dict = self.gym.get_asset_dof_dict(self.franka_asset)
 
     def add_barrier(self, barrier_pose, env, name, i, collision_filter, color):
         barrier_handle = self.gym.create_actor(env, self.barrier_asset, barrier_pose, name, i, collision_filter)
@@ -185,3 +191,6 @@ class SimulationCreator:
 
     def get_panda_idxs(self):
         return self.panda_idxs
+    
+    def get_asset_data(self):
+        return self.link_dict, self.dof_dict

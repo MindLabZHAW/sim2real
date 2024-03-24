@@ -92,6 +92,12 @@ simulation_creator = SimulationCreator(gym, asset_creator, franka_asset)
 simulation_creator.create_simulation(num_envs, sim, num_per_row, dof_data_processor.get_franka_dof_props(),
                                    dof_data_processor.get_default_dof_state(), default_dof_pos)
 
+link_dict, dof_dict = simulation_creator.get_asset_data()
+print("link dict")
+print(link_dict)
+print('dof dict:')
+print(dof_dict)
+
 utils.point_camera_at_middle_env(gym, viewer, num_envs, simulation_creator.get_envs(), num_per_row)
 
 

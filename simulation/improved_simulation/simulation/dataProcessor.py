@@ -37,7 +37,7 @@ class DataProcessor:
     def process(self):
         #Process the data here
         self.process_contact_force_data()
-        self.process_rb_state_data()
+        #self.process_rb_state_data()
         self.process_jacobian_data()
         #self.process_dof_state_data()
         #self.process_root_state_data()
@@ -47,7 +47,7 @@ class DataProcessor:
     def save_data(self):
         #save the data into the respective pickle files
         self.save_contact_force_data()
-        self.save_rb_state_data()
+        #self.save_rb_state_data()
         self.save_jacobian_data()
         #self.save_dof_state_data()
         #self.save_root_state_data()
@@ -96,6 +96,12 @@ class DataProcessor:
             self.jacobian_data_dict = {'time': [time.time()-self.start_time], 'jacobian': self.sim_data.jacobian[None,:,:]}
         self.jacobian_data_dict['time'] = np.append(self.jacobian_data_dict['time'],[time.time()-self.start_time])
         self.jacobian_data_dict['jacobian'] = torch.cat((self.jacobian_data_dict['jacobian'], self.sim_data.jacobian[None,:,:]))
+
+        #link dict
+        #{'panda_hand': 8, 'panda_leftfinger': 9, 'panda_link0': 0, 'panda_link1': 1, 'panda_link2': 2, 'panda_link3': 3, 'panda_link4': 4, 'panda_link5': 5, 'panda_link6': 6, 'panda_link7': 7, 'panda_rightfinger': 10}
+        #dof dict:
+        #{'panda_finger_joint1': 7, 'panda_finger_joint2': 8, 'panda_joint1': 0, 'panda_joint2': 1, 'panda_joint3': 2, 'panda_joint4': 3, 'panda_joint5': 4, 'panda_joint6': 5, 'panda_joint7': 6}
+        #{'panda_hand': 8, 'panda_leftfinger': 9, 'panda_link0': 0, 'panda_link1': 1, 'panda_link2': 2, 'panda_link3': 3, 'panda_link4': 4, 'panda_link5': 5, 'panda_link6': 6, 'panda_link7': 7, 'panda_rightfinger': 10}
         pass
     
     def process_root_state_data(self):
