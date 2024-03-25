@@ -40,9 +40,9 @@ def extract_velocities(jacobian_tensor):
         jacobian_tensor (torch.Tensor): Jacobian tensor with shape [num_entries, num_envs, num_links, 6, num_dofs].
 
     Returns:
-        angular_velocity (torch.Tensor): Angular velocity tensor with shape [num_entries, num_envs, 3].
-        linear_velocity (torch.Tensor): Linear velocity tensor with shape [num_entries, num_envs, 3].
-        joint_velocity (torch.Tensor): Joint velocity tensor with shape [num_entries, num_envs, num_links, 6, 6 (all joints)].
+        angular_velocity (torch.Tensor): Angular velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), 3].
+        linear_velocity (torch.Tensor): Linear velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), 3].
+        joint_velocity (torch.Tensor): Joint velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), num_links(amount of links the robot has - Franka = 11), 6, 6 (all joints)].
     """
     num_entries = jacobian_tensor.shape[0]
     num_envs = jacobian_tensor.shape[1]
