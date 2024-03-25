@@ -37,7 +37,7 @@ class DataProcessor:
     def process(self):
         #Process the data here
         self.process_contact_force_data()
-        #self.process_rb_state_data()
+        self.process_rb_state_data()
         self.process_jacobian_data()
         #self.process_dof_state_data()
         #self.process_root_state_data()
@@ -47,7 +47,7 @@ class DataProcessor:
     def save_data(self):
         #save the data into the respective pickle files
         self.save_contact_force_data()
-        #self.save_rb_state_data()
+        self.save_rb_state_data()
         self.save_jacobian_data()
         #self.save_dof_state_data()
         #self.save_root_state_data()
