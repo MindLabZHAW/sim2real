@@ -67,7 +67,7 @@ def extract_velocities(jacobian_tensor):
 
 
     # Extract Joint Velocity
-    joint_velocity = jacobian_tensor[:, :, :, :6, :7]  # Slicing for the last axis
+    joint_velocity = jacobian_tensor[:, :, :, :6, :]  # Slicing for the last axis
     print("Joint Velocity Shape (before reshape):", joint_velocity.shape)
 
 

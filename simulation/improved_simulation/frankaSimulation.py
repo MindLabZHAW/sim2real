@@ -97,6 +97,7 @@ print("link dict")
 print(link_dict)
 print('dof dict:')
 print(dof_dict)
+print('dof_dict finished')
 
 utils.point_camera_at_middle_env(gym, viewer, num_envs, simulation_creator.get_envs(), num_per_row)
 
