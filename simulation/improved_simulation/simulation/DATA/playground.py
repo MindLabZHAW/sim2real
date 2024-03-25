@@ -37,12 +37,12 @@ def extract_velocities(jacobian_tensor):
     Extracts angular, linear, and joint velocities from a Jacobian tensor.
 
     Parameters:
-        jacobian_tensor (torch.Tensor): Jacobian tensor with shape [num_entries, num_envs, num_links, 6, num_dofs].
+        jacobian_tensor (torch.Tensor): Jacobian tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), 11 (all links), 6, 9 (all joints)].
 
     Returns:
-        angular_velocity (torch.Tensor): Angular velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), 3].
-        linear_velocity (torch.Tensor): Linear velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), 3].
-        joint_velocity (torch.Tensor): Joint velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), num_links(amount of links the robot has - Franka = 11), 6, 6 (all joints)].
+        angular_velocity (torch.Tensor): Angular velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), 11 (all links), 3 (linear velocities), 9 (all joints)].
+        linear_velocity (torch.Tensor): Linear velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), 11 (all links), 3 (angular velocities), 9 (all joints)].
+        joint_velocity (torch.Tensor): Joint velocity tensor with shape [num_entries(=time entries), num_envs(amouont of environments defined in the simulation), 11 (all links), 6, 9 (all joints)].
     """
     num_entries = jacobian_tensor.shape[0]
     num_envs = jacobian_tensor.shape[1]
@@ -50,21 +50,12 @@ def extract_velocities(jacobian_tensor):
     print("Jacobian Shape:", jacobian_tensor.shape)
 
     # Extract Angular Velocity
-    angular_velocity = jacobian_tensor[:, :, -1, -3:, -1]  # Slicing for the last axis
+    angular_velocity = jacobian_tensor[:, :, :, -3:, :]  # Slicing for the last axis
     print("Angular Velocity Shape (before reshape):", angular_velocity.shape)
-    print("Angular Velocity Total Elements:", angular_velocity.numel())
-
-    angular_velocity = angular_velocity.view(num_entries, num_envs, 3)  # Reshape to [num_entries, num_envs, 3]
-    print("Angular Velocity Shape (after reshape):", angular_velocity.shape)
-
 
     # Extract Linear Velocity
-    linear_velocity = jacobian_tensor[:, :, -1, :3, -1]  # Slicing for the last axis
+    linear_velocity = jacobian_tensor[:, :, :, :3, :]  # Slicing for the last axis
     print("Linear Velocity Shape (before reshape):", linear_velocity.shape)
-
-    linear_velocity = linear_velocity.view(num_entries, num_envs, 3)  # Reshape to [num_entries, num_envs, 3]
-    print("Linear Velocity Shape (after reshape):", linear_velocity.shape)
-
 
     # Extract Joint Velocity
     joint_velocity = jacobian_tensor[:, :, :, :6, :]  # Slicing for the last axis
