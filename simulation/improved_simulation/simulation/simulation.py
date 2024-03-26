@@ -1,8 +1,8 @@
+import math
 import time
 from assets.assetFactory import AssetFactory
 from config.config import Configuration
 from simulation.dataProcessor import DataProcessor
-from simulation.movement.RectangleMovement import RectangleMovement
 from simulation.movement.RandomMovement import RandomMovement
 from simulation.movement.ForcedContactMovement import ForcedContactMovement
 from utils import utils
@@ -18,7 +18,7 @@ class Simulation:
         self.device = device
         self.sim_data = sim_data
         self.data_dict = []
-        self.movement = ForcedContactMovement(self.sim_data.init_pos, self.sim_data.init_rot)
+        self.movement = RandomMovement(self.sim_data.init_pos, self.sim_data.init_rot)
 
     def run(self, duration_time):
         # simulation loop

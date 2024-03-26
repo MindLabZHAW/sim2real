@@ -2,12 +2,16 @@ from abc import ABC, abstractmethod
 import random
 
 class Movement:
-    INITAL_POS_Z_OFFSET = -0.2
+    INITIAL_POS_X_OFFSET = [-0.1, 0.1]
+    INITIAL_POS_Y_OFFSET = [-0.2, 0.2]
+    INITIAL_POS_Z_OFFSET = [-0.2, 0.05]
     MOVEMENT_AFTER_AMOUNT_OF_STEPS = [20, 40]
 
     def __init__(self, initial_position, initial_rotation) -> None:
         self.initial_position = initial_position
-        self.initial_position[0][2] += self.INITAL_POS_Z_OFFSET
+        self.initial_position[0][0] += random.uniform(self.INITIAL_POS_X_OFFSET[0], self.INITIAL_POS_X_OFFSET[1])
+        self.initial_position[0][1] += random.uniform(self.INITIAL_POS_Y_OFFSET[0], self.INITIAL_POS_Y_OFFSET[1])
+        self.initial_position[0][2] += random.uniform(self.INITIAL_POS_Z_OFFSET[0], self.INITIAL_POS_Z_OFFSET[1])
 
         self.current_position = initial_position
         self.initial_rotation = initial_rotation
@@ -34,9 +38,3 @@ class Movement:
     @abstractmethod
     def get_next_rotation(self):
         pass
-
-    def add_offset_to(self, tensor, offset):
-        tensor[0] += random.uniform(-offset, offset)
-        tensor[1] += random.uniform(-offset, offset)
-        tensor[2] += random.uniform(-offset, offset)
-        return tensor
