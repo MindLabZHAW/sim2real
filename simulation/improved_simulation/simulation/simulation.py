@@ -24,7 +24,7 @@ class Simulation:
         # simulation loop
         start_time = time.time()
 
-        dataProcessor = DataProcessor(self.sim_data, start_time)
+        dataProcessor = DataProcessor(self.sim_data, start_time, self.gym, self.sim)
         dataProcessor.cleanup()
 
         index_number = 0
@@ -75,7 +75,7 @@ class Simulation:
         #print(net_cf[panda_idxs])
         if self.has_contact():
             print('There is a Contact :(') 
-            print(self.sim_data.net_cf[self.sim_data.panda_idxs])
+            #print(self.sim_data.net_cf[self.sim_data.panda_idxs])
         else:
             print('There is no Contact :)')
             #print(contacted_link)

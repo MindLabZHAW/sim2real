@@ -92,6 +92,13 @@ simulation_creator = SimulationCreator(gym, asset_creator, franka_asset)
 simulation_creator.create_simulation(num_envs, sim, num_per_row, dof_data_processor.get_franka_dof_props(),
                                    dof_data_processor.get_default_dof_state(), default_dof_pos)
 
+link_dict, dof_dict = simulation_creator.get_asset_data()
+print("link dict")
+print(link_dict)
+print('dof dict:')
+print(dof_dict)
+print('dof_dict finished')
+
 utils.point_camera_at_middle_env(gym, viewer, num_envs, simulation_creator.get_envs(), num_per_row)
 
 
@@ -104,14 +111,14 @@ panda_idxs = simulation_creator.get_panda_idxs()
 tensor_data_processor = TensorDataProcessor(gym, sim, num_envs, simulation_creator.get_init_pos_list(), simulation_creator.get_init_rot_list(), default_dof_pos, panda_idxs)
 tensor_data_processor.process_tensor_data(device)
 
-simulation_data = SimulationData(tensor_data_processor.get_net_contact_force_tensor(), utils.get_flat_list(panda_idxs), tensor_data_processor.get_rigib_body_states_tensor(),
+simulation_data = SimulationData(tensor_data_processor.get_net_contact_force_tensor(), utils.get_flat_list(panda_idxs), tensor_data_processor.get_rigib_body_states_tensor(),tensor_data_processor.get_jacobian_tensor(),
                                  simulation_creator.get_hand_idxs(), tensor_data_processor.get_down_dir_tensor(), controller,
                                  tensor_data_processor.get_dof_pos_tensor(), num_envs, tensor_data_processor.get_init_pos_tensor(),
                                  tensor_data_processor.get_init_rot_tensor(), tensor_data_processor.get_down_q_tensor(), tensor_data_processor.get_pos_action_tensor(),
                                   tensor_data_processor.get_effort_action_tensor(), tensor_data_processor.get_hand_restart_tensor(),
                                   utils.get_jacabian_end_effector(gym, franka_asset, tensor_data_processor.get_jacobian_tensor()),
                                   tensor_data_processor.get_mass_matrix_tensor(), tensor_data_processor.get_dof_vel_tensor(),
-                                  tensor_data_processor.get_default_pos_tensor(), tensor_data_processor.get_actor_root_tensor())
+                                  tensor_data_processor.get_default_pos_tensor(), tensor_data_processor.get_actor_root_tensor(), simulation_creator.get_envs())
 
 simulation = Simulation(gym, sim, viewer, device, simulation_data)
 simulation.run(15)
