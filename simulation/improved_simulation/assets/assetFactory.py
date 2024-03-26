@@ -2,24 +2,11 @@ from isaacgym import gymapi
 import os
 
 class AssetFactory:
-    TABLE_DIMS = gymapi.Vec3(0.6, 1.5, 0.4)
     BARRIER_DIMS = gymapi.Vec3(0.05, 0.05, 1)
-    BOX_SIZE = 0.045
 
     def __init__(self, gym, sim):
         self.gym = gym
         self.sim = sim
-
-    def create_table_asset(self):
-        # create table asset
-        asset_options = gymapi.AssetOptions()
-        asset_options.fix_base_link = True
-        return self.gym.create_box(self.sim, self.TABLE_DIMS.x, self.TABLE_DIMS.y, self.TABLE_DIMS.z, asset_options)
-    
-    def create_box_asset(self):
-        # create box asset
-        asset_options = gymapi.AssetOptions()
-        return self.gym.create_box(self.sim, self.BOX_SIZE, self.BOX_SIZE, self.BOX_SIZE, asset_options)
     
     def create_barrier_asset(self):
         # create barrier asset
